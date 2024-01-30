@@ -45,17 +45,18 @@ class History():
             self._stats_history[k].append(v)
 
     @property
-    def history(self):
+    def to_dict(self):
         return self._stats_history
 
-    def compute_average(self):
+    @property
+    def average(self):
         average_stats = {}
         for k, v in self._stats_history.items():
             average_stats[k] = sum(v) / len(v)
         return average_stats
-    
+
     def __getitem__(self, key):
-        return self.history[key]
+        return self._stats_history[key]
 
     def plot(self,
              what: str,
@@ -63,12 +64,12 @@ class History():
              with_val: bool = False,
              figsize: tuple[int, int] = (5, 5)):
         
-        stats = {what: self.history[what]}
+        stats = {what: self._stats_history[what]}
         epochs = np.arange(1, len(stats[what])+1)
         if with_val:
             val_what = f"val_{what}"
-            if val_what in self.history:
-                stats[val_what] = self.history[val_what]
+            if val_what in self._stats_history:
+                stats[val_what] = self._stats_history[val_what]
             else:
                 warnings.warn('"with_val" is set to True, but no "val_" key was found in history')
         graph_name = what.capitalize()
