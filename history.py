@@ -4,7 +4,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch import tensor
+from scipy.interpolate import PchipInterpolator
 
 import json
 
@@ -62,10 +62,12 @@ class History():
              what: str,
              show: bool = True,
              with_val: bool = False,
-             figsize: tuple[int, int] = (5, 5)):
+             figsize: tuple[int, int] = (5, 5),
+             smooth: bool = True):
         
         stats = {what: self._stats_history[what]}
         epochs = np.arange(1, len(stats[what])+1)
+        ticks = labels = epochs
         if with_val:
             val_what = f"val_{what}"
             if val_what in self._stats_history:
@@ -74,11 +76,17 @@ class History():
                 warnings.warn('"with_val" is set to True, but no "val_" key was found in history')
         graph_name = what.capitalize()
 
+        if smooth:
+            epochs_ = np.linspace(epochs.min(), epochs.max(), 1000)
+            for (name, stat) in stats.items():
+                stats[name] = PchipInterpolator(epochs, stat)(epochs_)
+            epochs = epochs_
+
         fig, ax = plt.subplots(figsize=figsize, layout="tight")
         for (name, stat) in stats.items():
             ax.plot(epochs, stat, label=name)
         ax.set_xlabel("Epoch")
-        ax.set_xticks(ticks=epochs, labels=epochs)
+        ax.set_xticks(ticks=ticks, labels=labels)
         ax.set_ylabel(graph_name)
         ax.set_title(f"{graph_name} over epochs")
         ax.legend()
@@ -87,3 +95,7 @@ class History():
             plt.show()
 
         return (fig, ax)
+    
+
+    def visualize(self, *args, **kwargs):
+        return self.plot(*args, **kwargs)
