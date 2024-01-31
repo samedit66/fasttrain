@@ -18,10 +18,7 @@ def _add_ext(file_name, ext):
 class History():
     
     def __init__(self, initial={}):
-        if initial is not None:
-            self._stats_history = defaultdict(list, initial)
-        else:
-            self._stats_history = defaultdict(list)
+        self._stats_history = defaultdict(list, initial)
 
     @classmethod
     def from_json(cls, file_name):
