@@ -36,15 +36,23 @@ class History():
                 v = float(v)
             self._stats_history[k].append(v)
 
+    def __iter__(self):
+        return iter(self._stats_history)
+
+    def __getitem__(self, key):
+        if not key in self._stats_history:
+            raise KeyError(key)
+        return self._stats_history[key]
+
+    def items(self):
+        return self._stats_history.items()
+
     @property
     def average(self):
         average_stats = {}
         for k, v in self._stats_history.items():
             average_stats[k] = sum(v) / len(v)
         return average_stats
-
-    def __getitem__(self, key):
-        return self._stats_history[key]
 
     def plot(self,
              what: str,
