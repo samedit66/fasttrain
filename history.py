@@ -17,8 +17,8 @@ def _add_ext(file_name, ext):
 
 class History():
     
-    def __init__(self, initial={}):
-        self._stats_history = defaultdict(list, initial)
+    def __init__(self, initial_stats={}):
+        self._stats_history = defaultdict(list, initial_stats)
 
     @classmethod
     def from_json(cls, file_name):
@@ -47,12 +47,27 @@ class History():
     def items(self):
         return self._stats_history.items()
 
+    def keys(self):
+        return self._stats_history.keys()
+
     @property
     def average(self):
         average_stats = {}
         for k, v in self._stats_history.items():
             average_stats[k] = sum(v) / len(v)
         return average_stats
+
+    @classmethod
+    def mean(cls, *histories):
+        if not histories:
+            raise ValueError("Cannot compute mean of no histories")
+        
+        stats = {}
+        for key in histories[0].keys():
+            mean_stat = np.mean([h[key] for h in histories], axis=0)
+            stats[key] = mean_stat.tolist()
+        
+        return History(stats)
 
     def plot(self,
              what: str,
