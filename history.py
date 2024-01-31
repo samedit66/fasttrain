@@ -17,7 +17,7 @@ def _add_ext(file_name, ext):
 
 class History():
     
-    def __init__(self, initial=None):
+    def __init__(self, initial={}):
         if initial is not None:
             self._stats_history = defaultdict(list, initial)
         else:
@@ -38,10 +38,6 @@ class History():
             if not isinstance(v, float):
                 v = float(v)
             self._stats_history[k].append(v)
-
-    @property
-    def to_dict(self):
-        return self._stats_history
 
     @property
     def average(self):
