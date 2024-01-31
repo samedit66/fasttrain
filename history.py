@@ -91,7 +91,6 @@ class History():
             plt.show()
 
         return (fig, ax)
-    
 
     def visualize(self, *args, **kwargs):
         return self.plot(*args, **kwargs)
