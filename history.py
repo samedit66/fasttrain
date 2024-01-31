@@ -9,13 +9,10 @@ from scipy.interpolate import PchipInterpolator
 import json
 
 
-class _NumbersEncoder(json.JSONEncoder):
-
-    def default(self, x):
-        if isinstance(x, np.ndarray) or isinstance(x, torch.Tensor):
-            return float(x)
-        else:
-            return super().default(self, x)
+def _add_ext(file_name, ext):
+    if not ext.startswith("."):
+        ext = f".{ext}"
+    return file_name if file_name.endswith(ext) else f"{file_name}{ext}"
 
 
 class History():
@@ -28,20 +25,18 @@ class History():
 
     @classmethod
     def from_json(cls, file_name):
-        if not file_name.endswith(".json"):
-            file_name = f"{file_name}.json"
-        with open(file_name, "r") as input_file:
+        with open(_add_ext(file_name, "json"), "r") as input_file:
             stats_history = json.load(input_file)
-        return History(stats_history) 
-            
-    def to_json(self, file_name):
-        if not file_name.endswith(".json"):
-            file_name = f"{file_name}.json"
-        with open(file_name, "w") as output_file:
-            json.dump(self.history, output_file, indent=4, cls=_NumbersEncoder)
+        return History(stats_history)
+
+    def to_json(self, file_name, indent_level=4):
+        with(open(_add_ext(file_name, "json"), "r")) as output_file:
+            json.dump(self.history, output_file, indent=indent_level)
 
     def update(self, stats):
         for k, v in stats.items():
+            if not isinstance(v, float):
+                v = float(v)
             self._stats_history[k].append(v)
 
     @property
