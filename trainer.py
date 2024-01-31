@@ -44,19 +44,6 @@ class Trainer(ABC):
     def evaluate_metrics(self, input_batch, output_batch):
         pass
 
-    # Epoch 1/3
-    # Training...        
-    #   Current - loss: 0.321
-    #   Average - loss: 0.421, accuracy: 0.95, f1: 0.75
-    # Validating...
-    #   Average - loss: 0.421, accuracy: 0.95, f1: 0.75
-    #
-    # Epoch 2/3
-    # Training...        
-    #   Current - loss: 0.231
-    #   Average - loss: 0.421, accuracy: 0.95, f1: 0.75
-    # Validating...
-    #   Average - loss: 0.421, accuracy: 0.95, f1: 0.75
     def train(self, train_data_loader, num_epochs, val_data_loader=None):
         history = History()
 
@@ -99,7 +86,7 @@ class Trainer(ABC):
                 f"  Current - {_format_metrics(metrics)}"
             )
 
-        average_metrics = metrics_history.compute_average()
+        average_metrics = metrics_history.average
         tqdm.write(f"  Average - {_format_metrics(average_metrics)}")
 
         return average_metrics
@@ -123,7 +110,7 @@ class Trainer(ABC):
                 f"  Current - {_format_metrics(metrics)}"
             )
 
-        average_metrics = metrics_history.compute_average()
+        average_metrics = metrics_history.average
         tqdm.write(f"  Average - {_format_metrics(average_metrics)}")
 
         return average_metrics
