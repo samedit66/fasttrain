@@ -154,7 +154,7 @@ def fbeta(
         y_true: torch.Tensor,
         beta: float,
         task: str = "binary",
-        threshold: float | dict[str, float] | None = None,
+        threshold: float | None = None,
         average: str | None = None
         ):
 
@@ -164,21 +164,15 @@ def fbeta(
     assert task in {"binary", "multiclass", "multilabel"}, \
         'task must be "binary", "multiclass" or "multilabel"'
 
-    assert (threshold is None) or isinstance(threshold, dict) or (0 < threshold < 1), \
+    assert (threshold is None) or (0 < threshold < 1), \
         "threshold must be either None, dict or in (0; 1)"
 
     assert (average is None) or (average in {"macro", "micro"}), \
         'average must be None, "macro" or "micro"'
 
-    precision_threshold = recall_threshold = None
-    if isinstance(threshold, dict):
-        precision_threshold = threshold["precision"]
-        recall_threshold = threshold["recall"]
-    else:
-        precision_threshold = recall_threshold = threshold
 
-    precision_ = precision(y_pred, y_true, task, precision_threshold, average)
-    recall_ = recall(y_pred, y_true, task, recall_threshold, average)
+    precision_ = precision(y_pred, y_true, task, threshold, average)
+    recall_ = recall(y_pred, y_true, task, threshold, average)
     fbeta_ = torch.nan_to_num((1 + beta**2) * precision_ * recall_ / (beta * precision_ + recall_), nan=0)
 
     if average == "macro":
@@ -193,7 +187,7 @@ def f1(
         y_pred: torch.Tensor,
         y_true: torch.Tensor,
         task: str = "binary",
-        threshold: float | dict | None = None,
+        threshold: float | None = None,
         average: str | None = None
         ):
     return fbeta(y_pred, y_true, beta=1.0, task=task, threshold=threshold, average=average)
