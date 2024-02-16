@@ -49,3 +49,9 @@ def load_data_on_device(dl: torch.utils.data.DataLoader, device: str):
             yield batch.to(device)
         else:
             raise TypeError(f'Type "{type(batch)}" is not supported')
+
+
+def add_file_ext(file_name: str, ext: str) -> str:
+    if not ext.startswith("."):
+        ext = f".{ext}"
+    return file_name if file_name.endswith(ext) else f"{file_name}{ext}"

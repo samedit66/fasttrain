@@ -1,17 +1,12 @@
 from collections import defaultdict
 import warnings
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
-import json
-
-
-def _add_ext(file_name, ext):
-    if not ext.startswith("."):
-        ext = f".{ext}"
-    return file_name if file_name.endswith(ext) else f"{file_name}{ext}"
+from _utils import add_file_ext
 
 
 class History():
@@ -21,12 +16,12 @@ class History():
 
     @classmethod
     def from_json(cls, file_name):
-        with open(_add_ext(file_name, "json"), "r") as input_file:
+        with open(add_file_ext(file_name, "json"), "r") as input_file:
             stats_history = json.load(input_file)
         return History(stats_history)
 
     def to_json(self, file_name, indent_level=4):
-        with(open(_add_ext(file_name, "json"), "r")) as output_file:
+        with(open(add_file_ext(file_name, "json"), "r")) as output_file:
             json.dump(self.history, output_file, indent=indent_level)
 
     def update(self, stats):
