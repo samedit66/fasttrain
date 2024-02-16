@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from train.history import History
+from train.callbacks.callback import Callback
 from _utils import (
     load_data_on_device,
     auto_select_device,
@@ -24,6 +25,18 @@ class Trainer(ABC):
         self.__opt = optimizer
         self.__device = None
         self.__is_training = False
+
+    @property
+    def is_training(self) -> bool:
+        return self.__is_training
+
+    @is_training.setter
+    def is_training(self, status: bool) -> None:
+        self.__is_training = status
+
+    @property
+    def model(self) -> torch.nn.Module:
+        return self.__model
 
     @abstractmethod
     def predict(self, input_batch): ...
@@ -95,14 +108,6 @@ class Trainer(ABC):
         self.model.eval()
         metrics = self.__one_epoch(dl, training=False)
         return metrics
-
-    @property
-    def is_training() -> bool:
-        return self.__is_training
-
-    @property
-    def model() -> torch.nn.Module:
-        return self.__model
 
     def train(self,
               train_data: collections.abc.Sequence | torch.utils.data.DataLoader,
