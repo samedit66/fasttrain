@@ -18,7 +18,7 @@ def paint(text: str, color: str) -> str:
 
 def format_metrics(metrics: dict[str, float],
                      metric_format: str = '{name}: {value:0.3f}',
-                     sep: str = ',',
+                     sep: str = ', ',
                      ) -> str:
     metric_format = re.sub(r'({value.*})',
                            paint(r'\1', 'purple'),
@@ -42,9 +42,17 @@ def auto_select_device(desired_device: str | None = None) -> str:
 def load_data_on_device(dl: torch.utils.data.DataLoader, device: str):
     for batch in dl:
         if isinstance(batch, collections.abc.Sequence):
-            yield [elem.to(device) for elem in batch]
+            yield [
+                elem.to(device)
+                if isinstance(elem, torch.Tensor)
+                else elem
+                for elem in batch
+                ]
         elif isinstance(batch, collections.abc.Mapping):
-            yield {key: elem.to(device) for (key, elem) in batch.items()}
+            yield {
+                key: (elem.to(device) if isinstance(elem, torch.Tensor) else elem)
+                for (key, elem) in batch.items()
+                }
         elif isinstance(batch, torch.Tensor):
             yield batch.to(device)
         else:

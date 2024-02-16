@@ -53,9 +53,9 @@ class Trainer(ABC):
     def __setup_device(self, desired_device: str | None):
         found_device = auto_select_device(desired_device)
         if desired_device is not None and found_device != desired_device:
-            self.__log('Desired device {desired_device} not available, using {found_device}')
+            self.__log(f'Desired device {desired_device} not available, using {found_device}')
         else:
-            self.__log('Using {found_device}')
+            self.__log(f'Using {found_device}')
         self.__device = found_device
 
     def __get_data_loader(self,
