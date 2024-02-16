@@ -138,15 +138,3 @@ class Trainer(ABC):
         self.__is_training = False
 
         return history
-
-
-'''
-
-trainer = Trainer(...)
-trainer.train(...,
-              callbacks=[EarlyStopping(patience=5, monitor="val_loss")]
-              )
-
-
-
-'''
