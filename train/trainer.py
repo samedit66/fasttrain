@@ -23,6 +23,7 @@ class Trainer(ABC):
         self.__model = model
         self.__opt = optimizer
         self.__device = None
+        self.__is_training = False
 
     @abstractmethod
     def predict(self, input_batch): ...
@@ -95,6 +96,14 @@ class Trainer(ABC):
         metrics = self.__one_epoch(dl, training=False)
         return metrics
 
+    @property
+    def is_training() -> bool:
+        return self.__is_training
+
+    @property
+    def model() -> torch.nn.Module:
+        return self.__model
+
     def train(self,
               train_data: collections.abc.Sequence | torch.utils.data.DataLoader,
               num_epochs: int,
@@ -102,7 +111,7 @@ class Trainer(ABC):
               val_data: collections.abc.Sequence | torch.utils.data.DataLoader | None = None,
               batch_size: int = 32,
               shuffle: bool = True,
-              patience: int | None = None
+              callbacks: list[Callback] = None, 
               ) -> History:
         self.__setup_device(device)
         self.__model = self.__model.to(self.__device)
@@ -110,6 +119,7 @@ class Trainer(ABC):
         train_dl = self.__get_data_loader(train_data, batch_size, shuffle)
         val_dl = self.__get_data_loader(val_data, batch_size, shuffle)
 
+        self.__is_training = True
         history = History()
         for epoch_num in range(1, num_epochs + 1):
             self.__log(f"Epoch {epoch_num}/{num_epochs}")
@@ -120,5 +130,18 @@ class Trainer(ABC):
             if val_dl is not None:
                 v_metrics = self.__validate(val_dl)
                 history.update(v_metrics)
+        self.__is_training = False
 
         return history
+
+
+'''
+
+trainer = Trainer(...)
+trainer.train(...,
+              callbacks=[EarlyStopping(patience=5, monitor="val_loss")]
+              )
+
+
+
+'''
