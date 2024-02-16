@@ -83,28 +83,28 @@ class Trainer(ABC):
     def __one_epoch(self, dl: DataLoader, training: bool) -> dict:
         history = History()
 
-        pbar = tqdm(load_data_on_device(dl, self.__device), unit="batch")
+        pbar = tqdm(load_data_on_device(dl, self.__device), unit='batch')
         for input_batch in pbar:
             output_batch, loss_value = self.__compute_loss(input_batch, training)
             metrics = self.eval_metrics(input_batch, output_batch)
-            metrics["loss"] = loss_value
+            metrics['loss'] = loss_value
             history.update(metrics)
-            pbar.set_description(f"  Current - {format_metrics(metrics)}")
+            pbar.set_description(f'  Current - {format_metrics(metrics)}')
 
         average = history.average
-        self.__log(f"  Average - {format_metrics(average)}")
+        self.__log(f'  Average - {format_metrics(average)}')
 
         return average
     
     def __train(self, dl: DataLoader) -> dict:
-        self.__log(paint("Training...", "green"))
+        self.__log(paint('Training...', 'green'))
         self.model.train()
         metrics = self.__one_epoch(dl, training=True)
         return metrics
     
     @torch.no_grad()
     def __validate(self, dl: DataLoader) -> dict:
-        self.__log(paint("Validating...", "orange"))
+        self.__log(paint('Validating...', 'orange'))
         self.model.eval()
         metrics = self.__one_epoch(dl, training=False)
         return metrics
