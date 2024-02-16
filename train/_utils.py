@@ -17,9 +17,9 @@ def paint(text: str, color: str) -> str:
 
 
 def format_metrics(metrics: dict[str, float],
-                     metric_format: str = '{name}: {value:0.3f}',
-                     sep: str = ', ',
-                     ) -> str:
+                   metric_format: str = '{name}: {value:0.3f}',
+                   sep: str = ', ',
+                   ) -> str:
     metric_format = re.sub(r'({value.*})',
                            paint(r'\1', 'purple'),
                            metric_format)
