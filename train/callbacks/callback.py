@@ -62,7 +62,7 @@ class Callback(ABC):
                                   trainer: Trainer,
                                   logs: dict | None = None
                                   ) -> None:
-           ...
+        ...
 
     def on_validation_batch_end(self,
                                 batch_idx: int,
