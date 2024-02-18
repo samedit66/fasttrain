@@ -1,7 +1,11 @@
 # fasttrain
 With `fasttrain` you'll forever forget about ugly and complex training loops in PyTorch!
 
-To start with, let's create a simple convnet just from the PyTorch tutorial:
+## Warning!
+`fasttrain` currently is under heavy development...
+
+## How do we start?
+Let's create a simple convnet just from the [PyTorch tutorial](https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html):
 ```python
 import torch
 from torch import nn
@@ -79,10 +83,10 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 trainer = FashionMNISTTrainer(model, optimizer)
 history = trainer.train(train_dataloader, val_data=test_dataloader, num_epochs=epochs, callbacks=[Tqdm(colab=True)])
 ```
-`fasttrain` comes with batteries and offers some useful "callbacks" - one of them is `Tqdm` which shows a pretty-looking progress bar (`colab=True` option is used 'cause I build this network in Google Colab, if you're using it locally you don't need to specify it, only when in Colab). Let's see how it looks:
+`fasttrain` comes with batteries and offers some useful "callbacks" - one of them is `Tqdm` which shows a pretty-looking progress bar (`colab=True` option is used 'cause I build this network in Google Colab, if you're using it locally you don't need to specify). Let's see how it looks:
 ![training_loop](https://github.com/samedit66/fasttrain/assets/45196253/edecaee0-1c92-4a9f-ac3d-639c458a2ab5)
 
-Did you see it? The first line printed tells us that we're using cuda - we never mentioned that, did we? `Trainer` is smart enough to use cuda if it's enabled, but if you want you can specify device which you want to use in `train()` with, for example, option `device='cpu'`. `train()` also returns us the history of training. What is it? It contains kind of dict which by key returns metrics' statistics over epochs. So you can later use matplotlib to show them. But `fasstrain` has a better option: plot them right now!
+Did you see it? The first line printed tells us that we're using cuda - we never mentioned that, did we? `Trainer` is smart enough to use cuda if it's enabled, but if you want you can specify device which you want to use in `train()` with, for example, option `device='cpu'`. `train()` also returns us the history of training. What is it? It contains kind of dict which by key returns metrics' statistics over epochs. So you can later use matplotlib to show them. But `fasttrain` has a better option: plot them right now!
 ```python
 history.plot("loss", with_val=True)
 ```
