@@ -19,10 +19,12 @@ def paint(text: str, color: str) -> str:
 def format_metrics(metrics: dict[str, float],
                    metric_format: str = '{name}: {value:0.3f}',
                    sep: str = ', ',
+                   with_color: bool = True,
                    ) -> str:
-    metric_format = re.sub(r'({value.*})',
-                           paint(r'\1', 'purple'),
-                           metric_format)
+    if with_color:
+        metric_format = re.sub(r'({value.*})',
+                               paint(r'\1', 'purple'),
+                               metric_format)
     return sep.join(metric_format.format(name=n, value=v) for (n, v) in metrics.items())
 
 
@@ -33,10 +35,10 @@ def available_devices() -> list[str]:
     return devices
 
 
-def auto_select_device(desired_device: str | None = None) -> str:
+def auto_select_device(desired_device: str = 'auto') -> str:
     found_devices = available_devices()
 
-    if desired_device is None:
+    if desired_device == 'auto':
         return 'cuda' if 'cuda' in found_devices else 'cpu'
     elif desired_device in found_devices:
         return desired_device
