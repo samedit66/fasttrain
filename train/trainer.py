@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import collections.abc 
+import collections.abc
 
 import torch
 from torch.utils.data import DataLoader
@@ -10,8 +10,6 @@ from train.callbacks.callback import Callback
 from _utils import (
     load_data_on_device,
     auto_select_device,
-    format_metrics,
-    paint,
     )
 
 
@@ -19,122 +17,185 @@ class Trainer(ABC):
 
     def __init__(self,
                  model: torch.nn.Module,
-                 optimizer: str | torch.optim.Optimizer,
+                 optimizer: torch.optim.Optimizer,
                  ) -> None:
-        self.__model = model
-        self.__opt = optimizer
-        self.__device = None
-        self.__is_training = False
+        self._model = model
+        self._opt = optimizer
+        self._device = None
+        self._is_training = False
+        self._callbacks = []
+        self._last_on_epoch_end_logs = {}
+
+    @abstractmethod
+    def predict(self, input_batch):
+        ...
+
+    @abstractmethod
+    def compute_loss(self, input_batch, output_batch):
+        ...
+
+    @abstractmethod
+    def eval_metrics(self, input_batch, output_batch):
+        ...
 
     @property
     def is_training(self) -> bool:
-        return self.__is_training
+        return self._is_training
 
     @is_training.setter
     def is_training(self, status: bool) -> None:
-        self.__is_training = status
+        self._is_training = status
 
-    @property
-    def model(self) -> torch.nn.Module:
-        return self.__model
+    def _on_train_begin(self, logs={}):
+        for cb in self._callbacks:
+            cb.on_train_begin(logs)
 
-    @abstractmethod
-    def predict(self, input_batch): ...
+    def _on_train_end(self, logs=None):
+        for cb in self._callbacks:
+            cb.on_train_end(self._last_on_epoch_end_logs)
 
-    @abstractmethod
-    def compute_loss(self, input_batch, output_batch): ...
+    def _on_epoch_begin(self, epoch_num, logs=None):
+        for cb in self._callbacks:
+            cb.on_epoch_begin(epoch_num, logs)
 
-    @abstractmethod
-    def eval_metrics(self, input_batch, output_batch): ...
+    def _on_epoch_end(self, epoch_num, logs=None):
+        self._last_on_epoch_end_logs = logs
+        for cb in self._callbacks:
+            cb.on_epoch_end(epoch_num, logs)
 
-    def __log(self, message: str,) -> None:
-        tqdm.write(message)
+    def _on_train_batch_begin(self, batch_num, logs=None):
+        for cb in self._callbacks:
+            cb.on_train_batch_begin(batch_num, logs)
 
-    def __setup_device(self, desired_device: str | None):
-        found_device = auto_select_device(desired_device)
-        if desired_device is not None and found_device != desired_device:
-            self.__log(f'Desired device {desired_device} not available, using {found_device}')
+    def _on_train_batch_end(self, batch_num, logs=None):
+        for cb in self._callbacks:
+            cb.on_train_batch_end(batch_num, logs)
+
+    def _on_validation_begin(self, logs=None):
+        for cb in self._callbacks:
+            cb.on_validation_begin(logs)
+
+    def _on_validation_end(self, logs=None):
+        for cb in self._callbacks:
+            cb.on_validation_end(logs)
+
+    def _on_validation_batch_begin(self, batch_num, logs=None):
+        for cb in self._callbacks:
+            cb.on_validation_batch_begin(batch_num, logs)
+
+    def _on_validation_batch_end(self, batch_num, logs=None):
+        for cb in self._callbacks:
+            cb.on_validation_batch_end(batch_num, logs)
+
+    def log(self, message: str) -> None:
+        if self.is_training:
+            tqdm.write(message)
         else:
-            self.__log(f'Using {found_device}')
-        self.__device = found_device
+            print(message)
 
-    def __get_data_loader(self,
-                          data: collections.abc.Sequence | None,
-                          batch_size: int,
-                          shuffle: bool) -> torch.utils.data.DataLoader:
+    def _setup_device(self, desired_device: str = 'auto'):
+        found_device = auto_select_device(desired_device)
+        if desired_device != 'auto' and found_device != desired_device:
+            self.log(f'Desired device {desired_device} not available, using {found_device}')
+        else:
+            self.log(f'Using {found_device}')
+        self._device = found_device
+
+    def _get_data_loader(self,
+                         data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
+                         batch_size: int,
+                         shuffle: bool) -> torch.utils.data.DataLoader:
         if (data is None) or isinstance(data, torch.utils.data.DataLoader):
             return data
         return DataLoader(data, batch_size=batch_size, shuffle=shuffle)
 
-    def __compute_loss(self,
-                       input_batch,
-                       training: bool
-                       ):
+    def _compute_loss(self,
+                      input_batch,
+                      training: bool
+                      ):
         output_batch = self.predict(input_batch)
         loss = self.compute_loss(input_batch, output_batch)
 
         if training:
             loss.backward()
-            self.__opt.step()
-            self.__opt.zero_grad()
+            self._opt.step()
+            self._opt.zero_grad()
 
         return (output_batch, loss.item())
     
-    def __one_epoch(self, dl: DataLoader, training: bool) -> dict:
-        history = History()
-
-        pbar = tqdm(load_data_on_device(dl, self.__device), unit='batch')
-        for input_batch in pbar:
-            output_batch, loss_value = self.__compute_loss(input_batch, training)
-            metrics = self.eval_metrics(input_batch, output_batch)
-            metrics['loss'] = loss_value
-            history.update(metrics)
-            pbar.set_description(f'  Current - {format_metrics(metrics)}')
-
-        average = history.average
-        self.__log(f'  Average - {format_metrics(average)}')
-
-        return average
-    
-    def __train(self, dl: DataLoader) -> dict:
-        self.__log(paint('Training...', 'green'))
+    def _train(self, dl: DataLoader) -> collections.abc.Mapping:
         self.model.train()
-        metrics = self.__one_epoch(dl, training=True)
-        return metrics
+
+        history = History()
+        data_gen = load_data_on_device(dl, self._device)
+        for (batch_num, input_batch) in enumerate(data_gen):
+            self._on_train_batch_begin(batch_num)
+            output_batch, loss_value = self._compute_loss(input_batch, training=True)
+            metrics = self.eval_metrics(input_batch, output_batch)
+            metrics["loss"] = loss_value
+            history.update(metrics)
+            self._on_train_batch_end(batch_num, history.average)
+        
+        return history.average
     
     @torch.no_grad()
-    def __validate(self, dl: DataLoader) -> dict:
-        self.__log(paint('Validating...', 'orange'))
+    def _validate(self, dl: DataLoader) -> collections.abc.Mapping:
         self.model.eval()
-        metrics = self.__one_epoch(dl, training=False)
-        return metrics
+
+        history = History()
+        data_gen = load_data_on_device(dl, self._device)
+        for (batch_num, input_batch) in enumerate(data_gen):
+            self._on_validation_batch_begin(batch_num)
+            output_batch, loss_value = self._compute_loss(input_batch, training=False)
+            metrics = self.eval_metrics(input_batch, output_batch)
+            metrics = {f'val_{k}': v for (k, v) in metrics.items()}
+            metrics['val_loss'] = loss_value
+            history.update(metrics)
+            self._on_validation_batch_end(batch_num, history.average)
+
+        return history.average
 
     def train(self,
-              train_data: collections.abc.Sequence | torch.utils.data.DataLoader,
+              train_data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
               num_epochs: int,
-              device: str | None = None,
-              val_data: collections.abc.Sequence | torch.utils.data.DataLoader | None = None,
-              batch_size: int = 32,
+              device: str = 'auto',
+              val_data: torch.utils.data.Dataset | torch.utils.data.DataLoader | None = None,
+              batch_size: int = 16,
               shuffle: bool = True,
-              callbacks: list[Callback] = None, 
-              ) -> History:
-        self.__setup_device(device)
-        self.__model = self.__model.to(self.__device)
+              callbacks: collections.abc.Sequence[Callback] | None = None
+              ):
+        self._setup_device(device)
+        self._model = self._model.to(self._device)
 
-        train_dl = self.__get_data_loader(train_data, batch_size, shuffle)
-        val_dl = self.__get_data_loader(val_data, batch_size, shuffle)
+        train_dl = self._get_data_loader(train_data, batch_size, shuffle)
+        val_dl = self._get_data_loader(val_data, batch_size, shuffle)
 
-        self.__is_training = True
+        if callbacks is not None:
+            self._callbacks = callbacks
+
+            training_params = {
+                'num_epochs': num_epochs,
+                # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
+                'num_batches': len(train_dl),
+                }
+            for cb in self._callbacks:
+                cb.trainer = self
+                cb.model = self._model
+                cb.set_training_params(training_params)
+
         history = History()
-        for epoch_num in range(1, num_epochs + 1):
-            self.__log(f"Epoch {epoch_num}/{num_epochs}")
-
-            t_metrics = self.__train(train_dl)
-            history.update(t_metrics)
-
+        self.is_training = True
+        self._on_train_begin()
+        current_epoch_num = 1
+        while self.is_training and current_epoch_num <= num_epochs:
+            self._on_epoch_begin(current_epoch_num)
+            metrics = self._train(train_dl)
             if val_dl is not None:
-                v_metrics = self.__validate(val_dl)
-                history.update(v_metrics)
-        self.__is_training = False
+                metrics |= self._validate(val_dl)
+            self._on_epoch_end(current_epoch_num, metrics)
+            history.update(metrics)
+            current_epoch_num += 1
+        self.is_training = False
+        self._on_train_end()
 
         return history
