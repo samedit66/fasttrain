@@ -19,7 +19,7 @@ class History():
         with open(add_file_ext(file_name, "json"), "r") as input_file:
             stats_history = json.load(input_file)
         return History(stats_history)
-
+ 
     def to_json(self, file_name, indent_level=4):
         with(open(add_file_ext(file_name, "json"), "r")) as output_file:
             json.dump(self.history, output_file, indent=indent_level)
