@@ -33,7 +33,7 @@ class Tqdm(Callback):
                  inner_desc_update: str = 'Epoch: {epoch_num} - {metrics}',
                  metric_format: str = "{name}: {value:0.3f}",
                  sep: str = ', ',
-                 leave_inner: bool = False,
+                 leave_inner: bool = True,
                  leave_outer: bool = True,
                  show_inner: bool = True,
                  show_outer: bool = True,
