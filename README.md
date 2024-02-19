@@ -56,7 +56,7 @@ model = NeuralNetwork()
 
 Your next move will probably be building some kind of training and testing functions to, of course, train your model and show how effective it is, but let's forget about it, and use little help from the `Trainer` class:
 ```python
-from fasttrain.train.trainer import Trainer
+from fasttrain import Trainer
 from fasttrain.metrics import accuracy
 
 class FashionMNISTTrainer(Trainer):
@@ -77,7 +77,7 @@ class FashionMNISTTrainer(Trainer):
 ```
 With `Trainer` all you have to do is specify how you predictions are made, how to compute loss and how to evaluate metrics (I hope you've seen that I've also imported `accuracy` metric, isn't it just fancy?). The rest you have to do is specify the model optimizer and call the `train` function:
 ```python
-from fasttrain.train.callbacks.progress_bar import Tqdm
+from fasttrain.callbacks import Tqdm
 
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 trainer = FashionMNISTTrainer(model, optimizer)
