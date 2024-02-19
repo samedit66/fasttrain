@@ -17,7 +17,7 @@ class Tqdm(Callback):
     :param inner_desc_update: Format after metrics collected (defaults to `"Epoch: {epoch_num} - {metrics}"`).
     :param metric_format: Format for each metric name/value pait (defaults to `"{name}: {value:0.3f}"`).
     :param sep: Separator between metrics (defaults to `","`)
-    :param leave_inner: `True` to leave inner bars (defaults to `False`).
+    :param leave_inner: `True` to leave inner bars (defaults to `True`).
     :param leave_outer: `True` to leave outer bars (defaults to `True`).
     :param show_inner: `False` to hide inner bars (defaults to `True`).
     :param show_outer: `False` to hide outer bars (defaults to `True`).
