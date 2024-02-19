@@ -5,9 +5,9 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from train.history import History
-from train.callbacks.callback import Callback
-from _utils import (
+from ..callbacks import Callback
+from .history import History
+from ._utils import (
     load_data_on_device,
     auto_select_device,
     )
@@ -37,6 +37,10 @@ class Trainer(ABC):
     @abstractmethod
     def eval_metrics(self, input_batch, output_batch):
         ...
+
+    @property
+    def model(self) -> torch.nn.Module:
+        return self._model
 
     @property
     def is_training(self) -> bool:
