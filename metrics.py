@@ -1,8 +1,5 @@
-from abc import ABC, abstractmethod
-
 import torch
 import torch.nn.functional as F
-# from sklearn.metrics import roc_auc_score, roc_curve
 
 
 def accuracy(
