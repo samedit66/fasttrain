@@ -21,7 +21,7 @@ setup(
         'torch',
         'tqdm',
         'numpy',
-        'matplotlib'
+        'matplotlib',
         'scipy',
         ],
     classifiers=[
