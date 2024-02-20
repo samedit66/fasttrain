@@ -1,5 +1,10 @@
 # fasttrain
-With `fasttrain` you'll forever forget about ugly and complex training loops in PyTorch!
+Forget about ugly and complex training loops
+
+## Installation
+```
+pip install fasttrain
+```
 
 ## Warning!
 `fasttrain` currently is under heavy development...
