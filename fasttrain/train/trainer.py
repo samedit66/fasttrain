@@ -185,7 +185,7 @@ class Trainer(ABC):
             for cb in self._callbacks:
                 cb.trainer = self
                 cb.model = self._model
-                cb.set_training_params(training_params)
+                cb.training_params = training_params
 
         history = History()
         self.is_training = True
