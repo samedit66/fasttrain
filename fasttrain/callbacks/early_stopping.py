@@ -1,4 +1,4 @@
-from callbacks import Callback
+from . import Callback
 
 
 class EarlyStopping(Callback):

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
-from _utils import add_file_ext
+from ._utils import add_file_ext
 
 
 class History():

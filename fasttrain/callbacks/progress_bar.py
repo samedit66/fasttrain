@@ -3,8 +3,8 @@ from sys import stderr
 from tqdm import tqdm
 from tqdm.notebook import tqdm as tqdm_notebook
 
-from callbacks import Callback
-from train._utils import format_metrics
+from . import Callback
+from ..train._utils import format_metrics
 
 
 class Tqdm(Callback):

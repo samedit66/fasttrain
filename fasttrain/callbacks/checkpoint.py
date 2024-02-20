@@ -1,6 +1,6 @@
 import torch
 
-from callbacks import Callback
+from . import Callback
 
 
 class Checkpoint(Callback):
