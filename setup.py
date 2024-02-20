@@ -8,7 +8,7 @@ def readme():
 
 setup(
     name='fasttrain',
-    version='0.0.0',
+    version='0.0.1',
     author='samedit66',
     author_email='samedit66@yandex.ru',
     description='Framework for building training loops easier and faster',
@@ -20,6 +20,9 @@ setup(
     install_requires=[
         'torch',
         'tqdm',
+        'numpy',
+        'matplotlib'
+        'scipy',
         ],
     classifiers=[
         'Programming Language :: Python :: 3',
