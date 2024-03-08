@@ -26,9 +26,10 @@ class Trainer(ABC):
         self._callbacks = []
         self._last_on_epoch_end_logs = {}
 
-    @abstractmethod
     def predict(self, input_batch):
-        ...
+        if isinstance(input_batch, collections.abc.Sequence):
+            (x_batch, _) = input_batch
+            return self.model(x_batch)
 
     @abstractmethod
     def compute_loss(self, input_batch, output_batch):
