@@ -30,6 +30,10 @@ class Trainer(ABC):
         if isinstance(input_batch, collections.abc.Sequence):
             (x_batch, _) = input_batch
             return self.model(x_batch)
+        
+        raise TypeError("Predefined predict failed, perhaps you need to define "
+                        "you custom predict function"
+                        )
 
     @abstractmethod
     def compute_loss(self, input_batch, output_batch):
