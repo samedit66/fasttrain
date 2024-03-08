@@ -48,6 +48,9 @@ class Trainer(ABC):
 
     @is_training.setter
     def is_training(self, status: bool) -> None:
+        if not isinstance(status, bool):
+            raise TypeError('Expect a value of bool type')
+
         self._is_training = status
 
     def _on_train_begin(self, logs={}):
