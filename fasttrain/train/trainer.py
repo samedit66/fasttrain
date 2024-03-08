@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from ..callbacks import Callback
 from .history import History
-from ._utils import (
+from .device import (
     load_data_on_device,
     auto_select_device,
     )
