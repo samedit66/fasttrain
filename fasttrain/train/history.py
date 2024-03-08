@@ -6,7 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
-from ._utils import add_file_ext
+
+def _add_file_ext(self, file_name: str, ext: str) -> str:
+    if not ext.startswith("."):
+        ext = f".{ext}"
+    return file_name if file_name.endswith(ext) else f"{file_name}{ext}"
 
 
 class History():
@@ -16,12 +20,12 @@ class History():
 
     @classmethod
     def from_json(cls, file_name):
-        with open(add_file_ext(file_name, "json"), "r") as input_file:
+        with open(_add_file_ext(file_name, "json"), "r") as input_file:
             stats_history = json.load(input_file)
         return History(stats_history)
  
     def to_json(self, file_name, indent_level=4):
-        with(open(add_file_ext(file_name, "json"), "r")) as output_file:
+        with(open(_add_file_ext(file_name, "json"), "r")) as output_file:
             json.dump(self.history, output_file, indent=indent_level)
 
     def update(self, stats):
