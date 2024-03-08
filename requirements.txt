@@ -1,7 +1,5 @@
-setuptools
 torch
 tqdm
 numpy
 matplotlib
 scipy
-wheel
