@@ -1,10 +1,34 @@
 from sys import stderr
+import re
 
 from tqdm import tqdm
 from tqdm.notebook import tqdm as tqdm_notebook
 
 from . import Callback
-from ..train._utils import format_metrics
+
+
+_COLORS = {
+    'green': '\033[1;32m{text}\033[0m',
+    'orange': '\033[38;5;208m{text}\033[0m',
+    'purple': '\033[38;5;092m{text}\033[0m',
+    }
+
+
+def _paint(text: str, color: str) -> str:
+    assert color in _COLORS
+    return _COLORS[color].format(text=text)
+
+
+def _format_metrics(metrics: dict[str, float],
+                   metric_format: str = '{name}: {value:0.3f}',
+                   sep: str = ', ',
+                   with_color: bool = True,
+                   ) -> str:
+    if with_color:
+        metric_format = re.sub(r'({value.*})',
+                               _paint(r'\1', 'purple'),
+                               metric_format)
+    return sep.join(metric_format.format(name=n, value=v) for (n, v) in metrics.items())
 
 
 class Tqdm(Callback):
@@ -60,10 +84,10 @@ class Tqdm(Callback):
         self._inner_total = 0
 
     def format_metrics(self, logs):
-        return format_metrics(logs,
-                              metric_format=self._metric_format,
-                              sep=self._sep,
-                              with_color=(not self._colab))
+        return _format_metrics(logs,
+                               metric_format=self._metric_format,
+                               sep=self._sep,
+                               with_color=(not self._colab))
 
     def _tqdm(self, desc, total, leave, initial=0):
         tqdm_ = tqdm_notebook if self._colab else tqdm
