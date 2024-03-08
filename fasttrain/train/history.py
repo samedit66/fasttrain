@@ -72,7 +72,8 @@ class History():
              show: bool = True,
              with_val: bool = False,
              figsize: tuple[int, int] = (5, 5),
-             smooth: bool = True):
+             smooth: bool = True,
+             grid: bool = True):
         
         stats = {what: self._stats_history[what]}
         epochs = np.arange(1, len(stats[what])+1)
@@ -101,6 +102,7 @@ class History():
         ax.legend()
 
         if show:
+            plt.grid(grid)
             plt.show()
 
         return (fig, ax)
