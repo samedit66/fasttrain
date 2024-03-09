@@ -27,20 +27,45 @@ class Trainer(ABC):
         self._last_on_epoch_end_logs = {}
 
     def predict(self, input_batch):
+        '''
+        This function is called every time when the model predictions are needed.
+        By default it expects a batch which should be a tuple or a list with 2 elements -
+        x-batch and y-batch. If your training data differs, you need to define a custom
+        predict function.
+        :param input_batch: batch that the DataLoader yields.
+        :return: model output batch.
+        '''
+
         if isinstance(input_batch, collections.abc.Sequence):
             (x_batch, _) = input_batch
             return self.model(x_batch)
         
-        raise TypeError("Predefined predict failed, perhaps you need to define "
-                        "you custom predict function"
+        raise TypeError('Predefined predict failed, perhaps you need to define '
+                        'you custom predict function'
                         )
 
     @abstractmethod
-    def compute_loss(self, input_batch, output_batch):
+    def compute_loss(self, input_batch, output_batch) -> float:
+        '''
+        This function is called every time when the loss value is needed.
+        You need to define how the loss value is computed. This method should 
+        return a float value.
+        :param input_batch: batch that the DataLoader yields.
+        :param output_batch: model output batch.
+        :return: loss value.
+        '''
         ...
 
     @abstractmethod
-    def eval_metrics(self, input_batch, output_batch):
+    def eval_metrics(self, input_batch, output_batch) -> collections.abc.Mapping:
+        '''
+        This function is called every time when metrics' values are needed.
+        You need to define how they are computed. This method should return
+        a dict-like object that contains metrics.
+        :param input_batch: batch that the DataLoader yields.
+        :param output_batch: model output batch.
+        :return: metrics.
+        '''
         ...
 
     @property
