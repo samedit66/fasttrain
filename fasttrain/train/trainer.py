@@ -28,6 +28,7 @@ class Trainer(ABC):
         self._is_training = False
         self._callbacks = []
         self._last_on_epoch_end_logs = {}
+        self._verbose = True
 
     def predict(self, input_batch):
         '''
@@ -136,6 +137,9 @@ class Trainer(ABC):
             cb.on_validation_batch_end(batch_num, logs)
 
     def log(self, message: str) -> None:
+        if not self._verbose:
+            return
+
         if self.is_training:
             tqdm.write(message)
         else:
@@ -243,8 +247,18 @@ class Trainer(ABC):
         train_dl = self._get_data_loader(train_data, batch_size, shuffle)
         val_dl = self._get_data_loader(val_data, batch_size, shuffle)
 
+        self._callbacks = []
+        self._verbose = verbose
+        if verbose:
+            try:
+                import google.colab
+                IN_COLAB = True
+            except ImportError:
+                IN_COLAB = False
+            self._callbacks.append(Tqdm(colab=IN_COLAB))
+
         if callbacks is not None:
-            self._callbacks = callbacks
+            self._callbacks.extend(callbacks)
 
             training_params = {
                 'num_epochs': num_epochs,
@@ -252,6 +266,9 @@ class Trainer(ABC):
                 'num_batches': len(train_dl),
                 }
             for cb in self._callbacks:
+                if verbose and isinstance(cb, Tqdm):
+                    continue
+
                 cb.trainer = self
                 cb.model = self._model
                 cb.training_params = training_params
