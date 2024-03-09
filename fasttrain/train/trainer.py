@@ -70,10 +70,18 @@ class Trainer(ABC):
 
     @property
     def model(self) -> torch.nn.Module:
+        '''
+        Returns training model.
+        :return: Training model.
+        '''
         return self._model
 
     @property
     def is_training(self) -> bool:
+        '''
+        Returns a bool value whether the model is training now.
+        :return: `True` if the model is training, `False` otherwise. 
+        '''
         return self._is_training
 
     @is_training.setter
