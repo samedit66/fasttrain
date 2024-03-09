@@ -14,7 +14,7 @@ class Callback(ABC):
     override the method associated with the stage of interest.
 
     To access the trainer, one should use `self.trainer`.
-    To access the training model, one should use `self.trainer.model`.
+    To access the training model, one should use `self.model`.
     '''
 
     def __init__(self) -> None:
