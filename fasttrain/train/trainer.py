@@ -1,11 +1,14 @@
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 import collections.abc
 
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from ..callbacks import Callback
+from ..callbacks import (
+    Callback,
+    Tqdm    
+    )
 from .history import History
 from .device import (
     load_data_on_device,
@@ -203,12 +206,37 @@ class Trainer(ABC):
     def train(self,
               train_data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
               num_epochs: int,
+              verbose: bool = True,
               device: str = 'auto',
               val_data: torch.utils.data.Dataset | torch.utils.data.DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
               callbacks: collections.abc.Sequence[Callback] | None = None
               ):
+        '''
+        Trains the model for a fixed number of epochs.
+
+        :param train_data: A Dataset or DataLoader object. If it's a DataLoader,
+        `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a DataLoader
+        from the given Dataset object.
+        :param num_epochs: Integer. Number of epochs to train the model.
+        :param verbose: Verbosity mode. Default to `True`. If `False`, no progress bar
+        appears and no messages are printed.
+        :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
+        to automatically detect suitable device for training, preferrably, cuda. 
+        :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
+        The model will not be trained on this data. A Dataset or DataLoader object. If it's a DataLoader,
+        `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
+        from the given Dataset object.
+        :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` aren't DataLoaders.
+        :param shuffle: Boolean, whether to shuffle the training data before each epoch. Default to `True`.
+        Used when `train_data` or `val_data` aren't DataLoaders.
+        :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
+        The use of the progress bar callback is controlled by `verbose` (if a progress bar callback is present,
+        and `verbose=True`, the callback is ignored; if a progress bar callback is present, but `verbose=False`,
+        it's still shown). 
+        :return: History object. The history of training which includes validation metrics if `val_data` present.
+        '''
         self._setup_device(device)
         self._model = self._model.to(self._device)
 
