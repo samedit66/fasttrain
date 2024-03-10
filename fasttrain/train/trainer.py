@@ -280,9 +280,7 @@ class Trainer(ABC):
         :param shuffle: Boolean, whether to shuffle the training data before each epoch. Default to `True`.
         Used when `train_data` or `val_data` aren't DataLoaders.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
-        The use of the progress bar callback is controlled by `verbose` (if a progress bar callback is present,
-        and `verbose=True`, the callback is ignored; if a progress bar callback is present, but `verbose=False`,
-        it's still shown). 
+        The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
         self._setup_device(device)
