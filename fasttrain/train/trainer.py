@@ -260,7 +260,7 @@ class Trainer(ABC):
               batch_size: int = 16,
               shuffle: bool = True,
               callbacks: collections.abc.Sequence[Callback] | None = None
-              ):
+              ) -> History:
         '''
         Trains the model for a fixed number of epochs.
 
