@@ -47,8 +47,7 @@ class Tqdm(Callback):
     :param show_outer: `False` to hide outer bars (defaults to `True`).
     :param output_file: Output file (defaults to `sys.stderr`).
     :param initial: Initial counter state (defaults to `0`).
-    :param colab: Set to `True` when in Google Colab (defaults to `False`), if `False` when
-        in Google Colab the progress bar may be strange looking.
+    :param in_notebook: Set to `True` when running in Jupyter, default `False`. 
     '''
 
     def __init__(self,
@@ -63,7 +62,7 @@ class Tqdm(Callback):
                  show_outer: bool = True,
                  output_file = stderr,
                  initial: int = 0,
-                 colab: bool = False,
+                 in_notebook: bool = False,
                  ) -> None:
         self._outer_desc = outer_desc
         self._inner_desc_initial = inner_desc_initial
@@ -76,7 +75,7 @@ class Tqdm(Callback):
         self._show_outer = show_outer
         self._output_file = output_file
         self._initial = initial
-        self._colab = colab
+        self._in_notebook = in_notebook
         self._current_epoch_num = 0
         self._tqdm_outer = None
         self._tqdm_inner = None
@@ -87,10 +86,10 @@ class Tqdm(Callback):
         return _format_metrics(logs,
                                metric_format=self._metric_format,
                                sep=self._sep,
-                               with_color=(not self._colab))
+                               with_color=(not self._in_notebook))
 
     def _tqdm(self, desc, total, leave, initial=0):
-        tqdm_ = tqdm_notebook if self._colab else tqdm
+        tqdm_ = tqdm_notebook if self._in_notebook else tqdm
 
         return tqdm_(desc=desc,
                     total=total,

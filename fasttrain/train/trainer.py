@@ -29,6 +29,7 @@ class Trainer(ABC):
         self._callbacks = []
         self._last_on_epoch_end_logs = {}
         self._verbose = True
+        self._in_notebook = None
 
     def predict(self, input_batch):
         '''
@@ -142,18 +143,31 @@ class Trainer(ABC):
         else:
             print(message)
 
-    def _setup_callbacks(self, user_callbacks, training_params):
+    def _is_in_notebook(self) -> bool:
+        try:
+            shell = get_ipython().__class__.__name__
+            if shell == 'ZMQInteractiveShell':
+                return True   # Jupyter notebook or qtconsole
+            elif shell == 'TerminalInteractiveShell':
+                return False  # Terminal running IPython
+            else:
+                return False  # Other type (?)
+        except NameError:
+            return False      # Probably standard Python interpreter
+
+    def _setup_callbacks(self,
+                         user_callbacks,
+                         training_params: dict,
+                         ) -> None:
         if user_callbacks is None:
             user_callbacks = []
 
         if self._verbose:
-            try:
-                import google.colab
-                IN_COLAB = True
-            except ImportError:
-                IN_COLAB = False
+            if self._in_notebook is None:
+                self._in_notebook = self._is_in_notebook()
 
-            progress_bar = Tqdm(colab=IN_COLAB)
+            self.log(f'Running as a {"notebook" if self._in_notebook else "script"}')
+            progress_bar = Tqdm(in_notebook=self._in_notebook)
             progress_bar.model = self.model
             progress_bar.trainer = self
             progress_bar.training_params = training_params
@@ -259,28 +273,32 @@ class Trainer(ABC):
               val_data: torch.utils.data.Dataset | torch.utils.data.DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
-              callbacks: collections.abc.Sequence[Callback] | None = None
+              callbacks: collections.abc.Sequence[Callback] | None = None,
+              in_notebook: bool | None = None,
               ) -> History:
         '''
         Trains the model for a fixed number of epochs.
 
         :param train_data: A Dataset or DataLoader object. If it's a DataLoader,
         `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a DataLoader
-        from the given Dataset object.
+            from the given Dataset object.
         :param num_epochs: Integer. Number of epochs to train the model.
         :param verbose: Verbosity mode. Default to `True`. If `False`, no progress bar
-        appears and no messages are printed.
+            appears and no messages are printed.
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
-        to automatically detect suitable device for training, preferrably, cuda. 
+            to automatically detect suitable device for training, preferrably, cuda. 
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
-        The model will not be trained on this data. A Dataset or DataLoader object. If it's a DataLoader,
-        `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
-        from the given Dataset object.
+            The model will not be trained on this data. A Dataset or DataLoader object. If it's a DataLoader,
+            `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
+            from the given Dataset object.
         :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` aren't DataLoaders.
         :param shuffle: Boolean, whether to shuffle the training data before each epoch. Default to `True`.
-        Used when `train_data` or `val_data` aren't DataLoaders.
+            Used when `train_data` or `val_data` aren't DataLoaders.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
-        The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
+            The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
+        :param in_notebook: Used to correctly display the progress bar. If `None`, tries to automatically detect
+            the whether running in a notebook or not. If `True`, forces to use notebook settings, otherwise forces to
+            use basic settings.
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
         self._setup_device(device)
@@ -290,6 +308,7 @@ class Trainer(ABC):
         val_dl = self._get_data_loader(val_data, batch_size, shuffle)
 
         self._verbose = verbose
+        self._in_notebook = in_notebook
         training_params = {
             'num_epochs': num_epochs,
             # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
