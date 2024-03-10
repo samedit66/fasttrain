@@ -142,6 +142,32 @@ class Trainer(ABC):
         else:
             print(message)
 
+    def _setup_callbacks(self, user_callbacks, training_params):
+        if user_callbacks is None:
+            user_callbacks = []
+
+        if self._verbose:
+            try:
+                import google.colab
+                IN_COLAB = True
+            except ImportError:
+                IN_COLAB = False
+
+            progress_bar = Tqdm(colab=IN_COLAB)
+            progress_bar.model = self.model
+            progress_bar.trainer = self
+            progress_bar.training_params = training_params
+            self._callbacks.append(progress_bar)
+        
+        for user_callback in user_callbacks:
+            if self._verbose and isinstance(user_callbacks, Tqdm):
+                continue
+
+            user_callback.model = self.model
+            user_callback.trainer = self
+            user_callback.training_params = training_params
+            self._callbacks.append(user_callback)
+
     def _setup_device(self, desired_device: str = 'auto'):
         found_device = auto_select_device(desired_device)
         if desired_device != 'auto' and found_device != desired_device:
