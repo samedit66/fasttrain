@@ -137,9 +137,6 @@ class Trainer(ABC):
             cb.on_validation_batch_end(batch_num, logs)
 
     def log(self, message: str) -> None:
-        if not self._verbose:
-            return
-
         if self.is_training:
             tqdm.write(message)
         else:
