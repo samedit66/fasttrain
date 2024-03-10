@@ -230,6 +230,27 @@ class Trainer(ABC):
 
         return history.average
 
+    def _training_loop(self,
+                       train_dl: torch.utils.data.DataLoader,
+                       val_dl: torch.utils.data.DataLoader,
+                       num_epochs: int,
+                       ) -> History:
+        history = History()
+        self.is_training = True
+        self._on_train_begin()
+        current_epoch_num = 1
+        while self.is_training and current_epoch_num <= num_epochs:
+            self._on_epoch_begin(current_epoch_num)
+            metrics = self._train(train_dl)
+            if val_dl is not None:
+                metrics |= self._validate(val_dl)
+            self._on_epoch_end(current_epoch_num, metrics)
+            history.update(metrics)
+            current_epoch_num += 1
+        self.is_training = False
+        self._on_train_end()
+        return history
+
     def train(self,
               train_data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
               num_epochs: int,
@@ -270,45 +291,13 @@ class Trainer(ABC):
         train_dl = self._get_data_loader(train_data, batch_size, shuffle)
         val_dl = self._get_data_loader(val_data, batch_size, shuffle)
 
-        self._callbacks = []
         self._verbose = verbose
-        if verbose:
-            try:
-                import google.colab
-                IN_COLAB = True
-            except ImportError:
-                IN_COLAB = False
-            self._callbacks.append(Tqdm(colab=IN_COLAB))
+        training_params = {
+            'num_epochs': num_epochs,
+            # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
+            'num_batches': len(train_dl),
+            }
+        self._setup_callbacks(callbacks, training_params)
 
-        if callbacks is not None:
-            self._callbacks.extend(callbacks)
-
-            training_params = {
-                'num_epochs': num_epochs,
-                # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
-                'num_batches': len(train_dl),
-                }
-            for cb in self._callbacks:
-                if verbose and isinstance(cb, Tqdm):
-                    continue
-
-                cb.trainer = self
-                cb.model = self._model
-                cb.training_params = training_params
-
-        history = History()
-        self.is_training = True
-        self._on_train_begin()
-        current_epoch_num = 1
-        while self.is_training and current_epoch_num <= num_epochs:
-            self._on_epoch_begin(current_epoch_num)
-            metrics = self._train(train_dl)
-            if val_dl is not None:
-                metrics |= self._validate(val_dl)
-            self._on_epoch_end(current_epoch_num, metrics)
-            history.update(metrics)
-            current_epoch_num += 1
-        self.is_training = False
-        self._on_train_end()
-
+        history = self._training_loop(train_dl, val_dl, num_epochs)
         return history
