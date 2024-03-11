@@ -78,8 +78,6 @@ class FashionMNISTTrainer(Trainer):
 ```
 With `Trainer` all you have to do is specify how you predictions are made, how to compute loss and how to evaluate metrics (I hope you've seen that I've also imported `accuracy` metric, isn't it just fancy?). The rest you have to do is specify the model optimizer and call the `train` function:
 ```python
-from fasttrain.callbacks import Tqdm
-
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 trainer = FashionMNISTTrainer(model, optimizer)
 history = trainer.train(train_dataloader, val_data=test_dataloader, num_epochs=epochs)
