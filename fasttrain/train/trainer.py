@@ -155,6 +155,13 @@ class Trainer(ABC):
         except NameError:
             return False      # Probably standard Python interpreter
 
+    def _is_in_colab(self) -> bool:
+        try:
+            import google.colab
+            return True
+        except:
+            return False
+
     def _setup_callbacks(self,
                          user_callbacks,
                          training_params: dict,
@@ -164,7 +171,7 @@ class Trainer(ABC):
 
         if self._verbose:
             if self._in_notebook is None:
-                self._in_notebook = self._is_in_notebook()
+                self._in_notebook = self._is_in_notebook() or self._is_in_colab()
 
             self.log(f'Running as a {"notebook" if self._in_notebook else "script"}')
             progress_bar = Tqdm(in_notebook=self._in_notebook)
