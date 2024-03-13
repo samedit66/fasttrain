@@ -1,16 +1,13 @@
 # fasttrain
-Forget about ugly and complex training loops
+`fasttrain` is a lightweight framework for building training loops for neural nets as fast as possible. It's designed to remove all boring details about making up training loops in [PyTorch](https://pytorch.org/), so you don't have to concentrate on how to pretty print a loss or metrics or bother about how to calculate them right.
 
 ## Installation
 ```
-pip install fasttrain
+$ pip install fasttrain
 ```
 
-## Warning!
-`fasttrain` currently is under heavy development...
-
 ## How do we start?
-Let's create a simple convnet just from the [PyTorch tutorial](https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html):
+Let's use a neural network to classify images in the FashionMNIST dataset:
 ```python
 import torch
 from torch import nn
@@ -59,33 +56,36 @@ class NeuralNetwork(nn.Module):
 model = NeuralNetwork()
 ```
 
-Your next move will probably be building some kind of training and testing functions to, of course, train your model and show how effective it is, but let's forget about it, and use little help from the `Trainer` class:
+Then we make up a trainer:
 ```python
 from fasttrain import Trainer
 from fasttrain.metrics import accuracy
 
-class FashionMNISTTrainer(Trainer):
+class MyTrainer(Trainer):
 
+    # Define how we compute the loss
     def compute_loss(self, input_batch, output_batch):
         (_, y_batch) = input_batch
         return nn.CrossEntropyLoss()(output_batch, y_batch)
 
+    # Define how we compute metrics
     def eval_metrics(self, input_batch, output_batch):
         (_, y_batch) = input_batch
         return {
             "accuracy": accuracy(output_batch, y_batch, task="multiclass")
         }
 ```
-With `Trainer` all you have to do is specify how you predictions are made, how to compute loss and how to evaluate metrics (I hope you've seen that I've also imported `accuracy` metric, isn't it just fancy?). The rest you have to do is specify the model optimizer and call the `train` function:
+
+Finally, let's train our model:
 ```python
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-trainer = FashionMNISTTrainer(model, optimizer)
+trainer = MyTrainer(model, optimizer)
 history = trainer.train(train_dataloader, val_data=test_dataloader, num_epochs=epochs)
 ```
-`fasttrain` comes with batteries and offers some useful "callbacks" - one of them is `Tqdm` which shows a pretty-looking progress bar. Let's see how it looks:
+`fasttrain` offers some useful callbacks - one of them is `Tqdm` which shows a pretty-looking progress bar:
 ![training_loop](https://github.com/samedit66/fasttrain/assets/45196253/edecaee0-1c92-4a9f-ac3d-639c458a2ab5)
 
-Did you see it? The first line printed tells us that we're using cuda - we never mentioned that, did we? `Trainer` is smart enough to use cuda if it's enabled, but if you want you can specify device which you want to use in `train()` with, for example, option `device='cpu'`. `train()` also returns us the history of training. What is it? It contains kind of dict which by key returns metrics' statistics over epochs. So you can later use matplotlib to show them. But `fasttrain` has a better option: plot them right now!
+`Trainer.train()` returns the history of training - it contains a dict which stores metrics over epochs and can plot them:
 ```python
 history.plot("loss", with_val=True)
 ```
@@ -94,5 +94,3 @@ history.plot("loss", with_val=True)
 history.plot("accuracy", with_val=True)
 ```
 ![accuracy](https://github.com/samedit66/fasttrain/assets/45196253/336bdef0-9f06-4887-8cb5-05255c89b228)
-
-Pretty-looking metrics with graphs, remember, batteries ARE included!
