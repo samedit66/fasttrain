@@ -17,6 +17,11 @@ from .device import (
 
 
 class Trainer(ABC):
+    '''
+    Base class for all user defined trainers. Usually, to make up a trainer,
+    one should subclass `Trainer` and define `predict`, `compute_loss` and `eval_metrics`.
+    Although you don't have to always define `predict` (see its docs).
+    '''
 
     def __init__(self,
                  model: torch.nn.Module,
@@ -37,10 +42,9 @@ class Trainer(ABC):
         By default it expects a batch which should be a tuple or a list with 2 elements -
         x-batch and y-batch. If your training data differs, you need to define a custom
         predict function.
-        :param input_batch: batch that the DataLoader yields.
-        :return: model output batch.
+        :param input_batch: Batch that the DataLoader yields.
+        :return: Model output batch.
         '''
-
         if isinstance(input_batch, collections.abc.Sequence):
             (x_batch, _) = input_batch
             return self.model(x_batch)
@@ -55,9 +59,9 @@ class Trainer(ABC):
         This function is called every time when the loss value is needed.
         You need to define how the loss value is computed. This method should 
         return a float value.
-        :param input_batch: batch that the DataLoader yields.
-        :param output_batch: model output batch.
-        :return: loss value.
+        :param input_batch: Batch that the DataLoader yields.
+        :param output_batch: Model output batch.
+        :return: Loss value.
         '''
         ...
 
@@ -67,9 +71,9 @@ class Trainer(ABC):
         This function is called every time when metrics' values are needed.
         You need to define how they are computed. This method should return
         a dict-like object that contains metrics.
-        :param input_batch: batch that the DataLoader yields.
-        :param output_batch: model output batch.
-        :return: metrics.
+        :param input_batch: Batch that the DataLoader yields.
+        :param output_batch: Model output batch.
+        :return: Metrics.
         '''
         ...
 
@@ -91,6 +95,12 @@ class Trainer(ABC):
 
     @is_training.setter
     def is_training(self, status: bool) -> None:
+        '''
+        Sets the status of training. This function must be used only inside a `Callback` class to
+        stop model training and to stop model training.
+        :param status: Status of training. When `False` and the model was in training mode,
+        training immediatly stops.
+        '''
         if not isinstance(status, bool):
             raise TypeError('Expect a value of bool type')
 
@@ -138,6 +148,12 @@ class Trainer(ABC):
             cb.on_validation_batch_end(batch_num, logs)
 
     def log(self, message: str) -> None:
+        '''
+        Logs a message to stdout. Should be used to inform user about model training because
+        ordinary `print` may break up the progress bar. 
+        
+        :param message: Message to log.
+        '''
         if self.is_training:
             tqdm.write(message)
         else:
