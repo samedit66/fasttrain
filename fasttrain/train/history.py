@@ -14,8 +14,39 @@ def _add_file_ext(self, file_name: str, ext: str) -> str:
 
 
 class History():
-    
-    def __init__(self, initial_stats={}):
+    r'''
+    Dict-like object, used to store metrics' values during model training.
+    Can be accesed by key (metric name) to get the metric's values over epochs, for example:
+
+    ```python
+    history = History()
+    history.update({'accuracy': 0.96, 'loss': 1.241})
+    history.update({'accuracy': 0.97, 'loss': 1.013})
+    history.update({'accuracy': 0.98, 'loss': 0.958})
+    # prints "[0.96, 0.97, 0.98]"
+    print(history['accuracy'])
+    ```
+
+    To get the average value of a specified metric, you can use `average_of`:
+    ```python
+    # prints "1.0706"
+    print(history.average_of('loss'))
+    ```
+
+    To get the average value of all metrics, you can use the property `average`:
+    ```python
+    # prints "{'accuracy': 0.97, 'loss': 1.0706}"
+    print(history.average)
+    ```
+
+    To visualize a metric, you can call either `plot` or its alias `visualize`:
+    ```python
+    history.plot('accuracy')
+    ```
+    '''
+
+    def __init__(self, initial_stats=None):
+        initial_stats = {} if initial_stats is None else initial_stats
         self._stats_history = defaultdict(list, initial_stats)
 
     @classmethod
@@ -54,6 +85,9 @@ class History():
         for k, v in self._stats_history.items():
             average_stats[k] = sum(v) / len(v)
         return average_stats
+
+    def average_of(self, metric_name):
+        return self.average[metric_name]
 
     @classmethod
     def mean(cls, *histories):
