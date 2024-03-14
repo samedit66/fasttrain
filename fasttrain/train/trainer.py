@@ -27,6 +27,10 @@ class Trainer(ABC):
                  model: torch.nn.Module,
                  optimizer: torch.optim.Optimizer,
                  ) -> None:
+        '''
+        :param model: Model to train.
+        :param optimizer: Optimizer for the model.
+        '''
         self._model = model
         self._opt = optimizer
         self._device = None
