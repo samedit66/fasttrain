@@ -50,7 +50,7 @@ class Trainer(ABC):
             return self.model(x_batch)
         
         raise TypeError('Predefined predict failed, perhaps you need to define '
-                        'you custom predict function'
+                        'your custom predict function'
                         )
 
     @abstractmethod
@@ -150,7 +150,7 @@ class Trainer(ABC):
     def log(self, message: str) -> None:
         '''
         Logs a message to stdout. Should be used to inform user about model training because
-        ordinary `print` may break up the progress bar. 
+        ordinary `print` may break up the progress bar. Use it only inside a custom `Callback`.
         
         :param message: Message to log.
         '''
@@ -311,7 +311,7 @@ class Trainer(ABC):
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
-            The model will not be trained on this data. A Dataset or DataLoader object. If it's a DataLoader,
+            The model will not be trained on this data. Can be either a Dataset or DataLoader object. If it's a DataLoader,
             `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
             from the given Dataset object.
         :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` aren't DataLoaders.
@@ -320,8 +320,8 @@ class Trainer(ABC):
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
             The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
         :param in_notebook: Used to correctly display the progress bar. If `None`, tries to automatically detect
-            the whether running in a notebook or not. If `True`, forces to use notebook settings, otherwise forces to
-            use basic settings.
+            whether running in a notebook or not. If `True`, forces to show a progress bar as it looks in a notebook
+            (leads to a strange-looking progress bar when not in a notebook).
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
         self._setup_device(device)
