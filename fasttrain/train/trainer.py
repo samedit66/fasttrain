@@ -63,7 +63,6 @@ class Trainer(ABC):
         :param output_batch: Model output batch.
         :return: Loss value.
         '''
-        ...
 
     @abstractmethod
     def eval_metrics(self, input_batch, output_batch) -> collections.abc.Mapping:
@@ -75,7 +74,6 @@ class Trainer(ABC):
         :param output_batch: Model output batch.
         :return: Metrics.
         '''
-        ...
 
     @property
     def model(self) -> torch.nn.Module:
