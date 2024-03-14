@@ -47,17 +47,17 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs=None):
         if self._stopped_epoch is not None:
-            self.trainer.log(
+            self.trainer._log(
                 f'Epoch {self._stopped_epoch}: early stopping.'
             )
         if self._restore_best_weights:
-            self.trainer.log(
+            self.trainer._log(
                 f'Restoring model weights from the end of the best epoch: {self._best_epoch}.'
             )
             if self._best_model_weights:
                 self.model.load_state_dict(self._best_model_weights)
             else:
-                self.trainer.log('No model weights were saved... '
+                self.trainer._log('No model weights were saved... '
                                  f'Maybe you specified wrong mode? Mode specidifed: "{self._mode}"')
 
     def on_epoch_end(self, epoch_num, logs=None):

@@ -147,7 +147,7 @@ class Trainer(ABC):
         for cb in self._callbacks:
             cb.on_validation_batch_end(batch_num, logs)
 
-    def log(self, message: str) -> None:
+    def _log(self, message: str) -> None:
         '''
         Logs a message to stdout. Should be used to inform user about model training because
         ordinary `print` may break up the progress bar. Use it only inside a custom `Callback`.
@@ -189,7 +189,7 @@ class Trainer(ABC):
             if self._in_notebook is None:
                 self._in_notebook = self._is_in_notebook() or self._is_in_colab()
 
-            self.log(f'Running as a {"notebook" if self._in_notebook else "script"}')
+            self._log(f'Running as a {"notebook" if self._in_notebook else "script"}')
             progress_bar = Tqdm(in_notebook=self._in_notebook)
             progress_bar.model = self.model
             progress_bar.trainer = self
@@ -208,9 +208,9 @@ class Trainer(ABC):
     def _setup_device(self, desired_device: str = 'auto'):
         found_device = auto_select_device(desired_device)
         if desired_device != 'auto' and found_device != desired_device:
-            self.log(f'Desired device {desired_device} not available, using {found_device}')
+            self._log(f'Desired device {desired_device} not available, using {found_device}')
         else:
-            self.log(f'Using {found_device}')
+            self._log(f'Using {found_device}')
         self._device = found_device
 
     def _get_data_loader(self,
