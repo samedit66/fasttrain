@@ -27,6 +27,7 @@ def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.dev
     :return: Selected device for training.
     '''
     found_devices = available_devices()
+    default_device = torch.device('cpu')
 
     str_desired_device = str(desired_device)
     if str_desired_device in found_devices:
@@ -36,8 +37,18 @@ def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.dev
         # because it's unknown whether we will not search for other devices later!
         if 'cuda' in found_devices:
             return torch.device('cuda')
+    else:
+        try:
+            _ = torch.tensor(1, device=torch.device(desired_device))
+        except (RuntimeError, AssertionError):
+            # This should fail when either the given device is incorrect, or it's not available.
+            return default_device
+        except:
+            # Don't know when this exactly fails, but I want to distinguish between
+            # this case and the above one. 
+            return default_device
     
-    return torch.device('cpu')
+    return default_device
 
 
 def load_data_on_device(dl: DataLoader, device: str | torch.device) -> Iterable[Any]:
