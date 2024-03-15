@@ -209,7 +209,7 @@ class Trainer(ABC):
 
     def _setup_device(self, desired_device: str = 'auto'):
         found_device = auto_select_device(desired_device)
-        if desired_device != 'auto' and found_device != desired_device:
+        if desired_device != 'auto' and str(found_device) != desired_device:
             self._log(f'Desired device {desired_device} not available, using {found_device}')
         else:
             self._log(f'Using {found_device}')
