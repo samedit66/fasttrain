@@ -65,7 +65,7 @@ class Checkpoint(Callback):
 
     def on_train_end(self, logs={}):
         if self._best_model_weights is not None:
-            self.trainer._log('Saving best model weights from the end of the best epoch: {self._best_epoch}.')
+            self.trainer._log(f'Saving best model weights from the end of the best epoch: {self._best_epoch}.')
             self._save_model()
 
     def on_epoch_end(self, epoch_num, logs={}):
