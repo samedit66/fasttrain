@@ -206,14 +206,6 @@ class Trainer(ABC):
             user_callback.training_params = training_params
             self._callbacks.append(user_callback)
 
-    def _setup_device(self, desired_device: str = 'auto'):
-        found_device = auto_select_device(desired_device)
-        if desired_device != 'auto' and str(found_device) != desired_device:
-            self._log(f'Desired device {desired_device} not available, using {found_device}')
-        else:
-            self._log(f'Using {found_device}')
-        self._device = found_device
-
     def _get_data_loader(self,
                          data: Dataset | DataLoader,
                          batch_size: int,
@@ -293,7 +285,8 @@ class Trainer(ABC):
               train_data: Dataset | DataLoader,
               num_epochs: int,
               verbose: bool = True,
-              device: str = 'auto',
+              device: str | torch.device = 'auto',
+              force_device: bool = False,
               val_data: Dataset | DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
@@ -311,6 +304,7 @@ class Trainer(ABC):
             appears and no messages are printed.
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
+        :param force_device: Boolean. If `True` and `device` is not available, raises RuntimeError. Default to `False`.
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
             The model will not be trained on this data. Can be either a Dataset or DataLoader object. If it's a DataLoader,
             `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
@@ -325,7 +319,15 @@ class Trainer(ABC):
             (leads to a strange-looking progress bar when not in a notebook).
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
-        self._setup_device(device)
+        available_device = auto_select_device(desired_device=device)
+        if str(available_device) != str(device):
+            if force_device:
+                raise RuntimeError(f'Device "{device}" not available')
+            self._log(f'Device "{device}" not available, using "{available_device}"')
+        else:
+            self._log(f'Using "{available_device}"')
+
+        self._device = available_device
         self._model = self._model.to(self._device)
 
         train_dl = self._get_data_loader(train_data, batch_size, shuffle)
