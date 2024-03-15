@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import collections.abc
+from collections.abc import Sequence, Mapping
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -49,7 +49,7 @@ class Trainer(ABC):
         :param input_batch: Batch that the DataLoader yields.
         :return: Model output batch.
         '''
-        if isinstance(input_batch, collections.abc.Sequence):
+        if isinstance(input_batch, Sequence):
             (x_batch, _) = input_batch
             return self.model(x_batch)
         
@@ -58,18 +58,17 @@ class Trainer(ABC):
                         )
 
     @abstractmethod
-    def compute_loss(self, input_batch, output_batch) -> float:
+    def compute_loss(self, input_batch, output_batch) -> torch.Tensor:
         '''
         This function is called every time when the loss value is needed.
-        You need to define how the loss value is computed. This method should 
-        return a float value.
+        You need to define how the loss value is computed. This method must return a `torch.Tensor`.
         :param input_batch: Batch that the DataLoader yields.
         :param output_batch: Model output batch.
         :return: Loss value.
         '''
 
     @abstractmethod
-    def eval_metrics(self, input_batch, output_batch) -> collections.abc.Mapping:
+    def eval_metrics(self, input_batch, output_batch) -> Mapping:
         '''
         This function is called every time when metrics' values are needed.
         You need to define how they are computed. This method should return
@@ -216,10 +215,10 @@ class Trainer(ABC):
         self._device = found_device
 
     def _get_data_loader(self,
-                         data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
+                         data: Dataset | DataLoader,
                          batch_size: int,
-                         shuffle: bool) -> torch.utils.data.DataLoader:
-        if (data is None) or isinstance(data, torch.utils.data.DataLoader):
+                         shuffle: bool) -> DataLoader:
+        if (data is None) or isinstance(data, DataLoader):
             return data
         return DataLoader(data, batch_size=batch_size, shuffle=shuffle)
 
@@ -237,7 +236,7 @@ class Trainer(ABC):
 
         return (output_batch, loss.item())
     
-    def _train(self, dl: DataLoader) -> collections.abc.Mapping:
+    def _train(self, dl: DataLoader) -> Mapping:
         self.model.train()
 
         history = History()
@@ -253,7 +252,7 @@ class Trainer(ABC):
         return history.average
     
     @torch.no_grad()
-    def _validate(self, dl: DataLoader) -> collections.abc.Mapping:
+    def _validate(self, dl: DataLoader) -> Mapping:
         self.model.eval()
 
         history = History()
@@ -270,8 +269,8 @@ class Trainer(ABC):
         return history.average
 
     def _training_loop(self,
-                       train_dl: torch.utils.data.DataLoader,
-                       val_dl: torch.utils.data.DataLoader,
+                       train_dl: DataLoader,
+                       val_dl: DataLoader,
                        num_epochs: int,
                        ) -> History:
         history = History()
@@ -291,14 +290,14 @@ class Trainer(ABC):
         return history
 
     def train(self,
-              train_data: torch.utils.data.Dataset | torch.utils.data.DataLoader,
+              train_data: Dataset | DataLoader,
               num_epochs: int,
               verbose: bool = True,
               device: str = 'auto',
-              val_data: torch.utils.data.Dataset | torch.utils.data.DataLoader | None = None,
+              val_data: Dataset | DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
-              callbacks: collections.abc.Sequence[Callback] | None = None,
+              callbacks: Sequence[Callback] | None = None,
               in_notebook: bool | None = None,
               ) -> History:
         '''
