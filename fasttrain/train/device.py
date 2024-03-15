@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def available_devices() -> list[str]:
+def _available_devices() -> list[str]:
     '''
     Returns all available devices for training (includes only cpu and cuda devices!).
     :return: Avalilable devices for training.
@@ -20,35 +20,36 @@ def available_devices() -> list[str]:
 
 def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.device:
     '''
-    Selects device for training. Firstly, tries to find out `desired_device`, if fails,
-    then tries to find cuda, and if fails again, returns `torch.device('cpu')`.
+    Selects device for training.
 
-    :param desired_device: Desired device for training. Default to `"auto"`.
+    :param desired_device: Desired device for training.
+        When `"auto"` tries to find out the most suitable device automaticly:
+        if cuda is enabled, it's returned, otherwise cpu is returned.
+        When not `"auto"` and `desired_device` can't be used (unavailable or incorrect name),
+        cpu is returned.
     :return: Selected device for training.
     '''
-    found_devices = available_devices()
+    found_devices = _available_devices()
     default_device = torch.device('cpu')
-
-    str_desired_device = str(desired_device)
-    if str_desired_device in found_devices:
-        return torch.device(desired_device)
-    elif str_desired_device == 'auto':
-        # Do not combine the condition above with this condition,
-        # because it's unknown whether we will not search for other devices later!
+    if desired_device == 'auto':
         if 'cuda' in found_devices:
             return torch.device('cuda')
-    else:
-        try:
-            _ = torch.tensor(1, device=torch.device(desired_device))
-        except (RuntimeError, AssertionError):
-            # This should fail when either the given device is incorrect, or it's not available.
-            return default_device
-        except:
-            # Don't know when this exactly fails, but I want to distinguish between
-            # this case and the above one. 
-            return default_device
-    
-    return default_device
+        return default_device
+
+    try:
+        desired_device = torch.device(desired_device)
+        _ = torch.tensor(1, device=desired_device)
+        return desired_device
+    except AssertionError:
+        # This should fail when the given device is unavailable.
+        return default_device
+    except RuntimeError:
+        # This should fail when the given device name is incorrect.
+        return default_device
+    except:
+        # Don't know when this exactly fails, but I want to distinguish between
+        # this case and the above ones. 
+        return default_device
 
 
 def load_data_on_device(dl: DataLoader, device: str | torch.device) -> Iterable[Any]:
