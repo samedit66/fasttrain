@@ -23,7 +23,7 @@ def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.dev
     Selects device for training. Firstly, tries to find out `desired_device`, if fails,
     then tries to find cuda, and if fails again, returns `torch.device('cpu')`.
 
-    :param desired_device: Desired device for training.
+    :param desired_device: Desired device for training. Default to `"auto"`.
     :return: Selected device for training.
     '''
     found_devices = available_devices()
