@@ -305,6 +305,7 @@ class Trainer(ABC):
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
         :param force_device: Boolean. If `True` and `device` is not available, raises RuntimeError. Default to `False`.
+            Used if `device` is not `"auto"`.
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
             The model will not be trained on this data. Can be either a Dataset or DataLoader object. If it's a DataLoader,
             `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
@@ -320,12 +321,12 @@ class Trainer(ABC):
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
         available_device = auto_select_device(desired_device=device)
-        if str(available_device) != str(device):
+        if device != "auto" and str(available_device) != str(device):
             if force_device:
                 raise RuntimeError(f'Device "{device}" not available')
-            self._log(f'Device "{device}" not available, using "{available_device}"')
+            self._log(f'Device {device} not available, using {available_device}')
         else:
-            self._log(f'Using "{available_device}"')
+            self._log(f'Using {available_device}')
 
         self._device = available_device
         self._model = self._model.to(self._device)
