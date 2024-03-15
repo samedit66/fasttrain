@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 def available_devices() -> list[str]:
     '''
-    Returns all available devices for training.
+    Returns all available devices for training (includes only cpu and cuda devices!).
     :return: Avalilable devices for training.
     '''
     devices = ['cpu']
