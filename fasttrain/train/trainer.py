@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import collections.abc
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 from ..callbacks import (
