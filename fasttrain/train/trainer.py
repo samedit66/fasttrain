@@ -287,7 +287,6 @@ class Trainer(ABC):
               verbose: bool = True,
               device: str | torch.device = 'auto',
               force_device: bool = True,
-              parallel: bool = False,
               val_data: Dataset | DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
