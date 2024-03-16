@@ -1,4 +1,5 @@
 from . import Callback
+from ._colors import paint
 
 
 class EarlyStopping(Callback):
@@ -22,6 +23,7 @@ class EarlyStopping(Callback):
                  mode: str = 'min',
                  restore_best_weights: bool = True,
                  ) -> None:
+        assert isinstance(patience, int) and patience >= 1 
         self._patience = patience
         self._monitor = monitor
         self._mode = mode
@@ -48,9 +50,9 @@ class EarlyStopping(Callback):
     def on_train_end(self, logs=None):
         if self._stopped_epoch is not None:
             self.trainer._log(
-                f'Epoch {self._stopped_epoch}: early stopping.'
+                f'Epoch: {self._stopped_epoch} - early stopping.'
             )
-        if self._restore_best_weights:
+        if self._restore_best_weights and self._best_epoch is not None:
             self.trainer._log(
                 f'Restoring model weights from the end of the best epoch: {self._best_epoch}.'
             )
@@ -81,6 +83,7 @@ class EarlyStopping(Callback):
                 self._best_model_weights = self.model.state_dict()
                 self._best_epoch = epoch_num
         else:
+            self.trainer._log(paint(f'Watch out, quality of {self._monitor} is decreasing!', 'orange'))
             self._remaining_patience -= 1
 
         self._last_metric_value = logs[self._monitor]

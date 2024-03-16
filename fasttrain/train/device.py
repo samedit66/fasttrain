@@ -18,9 +18,9 @@ def _available_devices() -> list[str]:
     return devices
 
 
-def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.device:
+def find_suitable_device(desired_device: str | torch.device = 'auto') -> torch.device:
     '''
-    Selects device for training.
+    Find suitable device for training.
 
     :param desired_device: Desired device for training.
         When `"auto"` tries to find out the most suitable device automaticly:
@@ -45,10 +45,6 @@ def auto_select_device(desired_device: str | torch.device = 'auto') -> torch.dev
         return default_device
     except RuntimeError:
         # This should fail when the given device name is incorrect.
-        return default_device
-    except:
-        # Don't know when this exactly fails, but I want to distinguish between
-        # this case and the above ones. 
         return default_device
 
 

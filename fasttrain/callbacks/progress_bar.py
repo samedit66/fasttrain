@@ -5,18 +5,7 @@ from tqdm import tqdm
 from tqdm.notebook import tqdm as tqdm_notebook
 
 from . import Callback
-
-
-_COLORS = {
-    'green': '\033[1;32m{text}\033[0m',
-    'orange': '\033[38;5;208m{text}\033[0m',
-    'purple': '\033[38;5;092m{text}\033[0m',
-    }
-
-
-def _paint(text: str, color: str) -> str:
-    assert color in _COLORS
-    return _COLORS[color].format(text=text)
+from ._colors import paint
 
 
 def _format_metrics(metrics: dict[str, float],
@@ -26,7 +15,7 @@ def _format_metrics(metrics: dict[str, float],
                    ) -> str:
     if with_color:
         metric_format = re.sub(r'({value.*})',
-                               _paint(r'\1', 'purple'),
+                               paint(r'\1', 'purple'),
                                metric_format)
     return sep.join(metric_format.format(name=n, value=v) for (n, v) in metrics.items())
 
@@ -64,6 +53,7 @@ class Tqdm(Callback):
                  initial: int = 0,
                  in_notebook: bool = False,
                  ) -> None:
+        super().__init__()
         self._outer_desc = outer_desc
         self._inner_desc_initial = inner_desc_initial
         self._inner_desc_update = inner_desc_update

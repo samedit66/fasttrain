@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Mapping
+
 import torch
 
 from . import Callback
@@ -35,6 +38,7 @@ class Checkpoint(Callback):
                  mode: str = 'min',
                  threshold: float | None = None,
                  ) -> None:
+        super().__init__()
         self._file_path = file_path
         self._monitor = monitor
         self._save_best_only = save_best_only
@@ -56,24 +60,42 @@ class Checkpoint(Callback):
                 is_better = is_better and (metric_value >= self._threshold)
             return is_better
 
-    def _save_model(self):
-        if self._monitor is None:
-            file_path = self._file_path
-        else:
-            file_path = self._file_path.format(epoch_num=self._best_epoch, **self._best_metrics)
+    def _save_model(self, **kwargs):
+        file_path = self._file_path.format(**kwargs)
         torch.save(self.model.state_dict(), file_path)
+
+    def on_train_begin(self, logs: Mapping | None = None) -> None:
+        path = Path(self._file_path)
+        if path.parent != Path('.'):
+            if path.parent.exists():
+                self.trainer._log(f'Model checkpoints will be written to the existing directory: {path.parent}')
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                self.trainer._log(f'Created checkpoint directory: {path.parent}')
 
     def on_train_end(self, logs={}):
         if self._best_model_weights is not None:
             self.trainer._log(f'Saving best model weights from the end of the best epoch: {self._best_epoch}.')
-            self._save_model()
+            self._save_model(epoch_num=self._best_epoch,
+                             **self._best_metrics)
 
-    def on_epoch_end(self, epoch_num, logs={}):
-        if (self._monitor is not None) and (logs.get(self._monitor) is None):
+    def on_train_batch_end(self, batch_num: int, logs: Mapping | None = None) -> None:
+        if (self._monitor is not None) and \
+           (not self._monitor.startswith("val")) and \
+           (logs is not None) and \
+           (logs.get(self._monitor) is None):
+            raise ValueError(f'Expected metric to monitor "{self._monitor}" not found')
+        
+    def on_validation_batch_end(self, batch_num: int, logs: Mapping | None = None) -> None:
+        if (self._monitor is not None) and \
+           (self._monitor.startswith("val")) and \
+           (logs is not None) and \
+           (logs.get(self._monitor) is None):
             raise ValueError(f'Expected metric to monitor "{self._monitor}" not found')
 
+    def on_epoch_end(self, epoch_num, logs={}):
         if self._monitor is None:
-            self._save_model()
+            self._save_model(epoch_num=epoch_num, **logs)
             return
 
         if self._best_metric_value is None:
@@ -94,7 +116,6 @@ class Checkpoint(Callback):
                 # TODO: Печатать сообщение о том, что метрика перестала увеличиваться?
                 pass
         else: 
-            self._save_model(epoch_num=self._best_epoch,
-                             name=self._monitor,
-                             value=self._best_metric_value,
+            self._save_model(epoch_num=epoch_num,
+                             **logs,
                              )

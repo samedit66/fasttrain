@@ -12,7 +12,7 @@ from ..callbacks import (
 from .history import History
 from .device import (
     load_data_on_device,
-    auto_select_device,
+    find_suitable_device,
     )
 
 
@@ -286,7 +286,8 @@ class Trainer(ABC):
               num_epochs: int,
               verbose: bool = True,
               device: str | torch.device = 'auto',
-              force_device: bool = False,
+              force_device: bool = True,
+              parallel: bool = False,
               val_data: Dataset | DataLoader | None = None,
               batch_size: int = 16,
               shuffle: bool = True,
@@ -304,7 +305,7 @@ class Trainer(ABC):
             appears and no messages are printed.
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
-        :param force_device: Boolean. If `True` and `device` is not available, raises RuntimeError. Default to `False`.
+        :param force_device: Boolean. If `True` and `device` is not available, raises RuntimeError. Default to `True`.
             Used if `device` is not `"auto"`.
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
             The model will not be trained on this data. Can be either a Dataset or DataLoader object. If it's a DataLoader,
@@ -320,10 +321,10 @@ class Trainer(ABC):
             (leads to a strange-looking progress bar when not in a notebook).
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
-        available_device = auto_select_device(desired_device=device)
+        available_device = find_suitable_device(desired_device=device)
         if device != "auto" and str(available_device) != str(device):
             if force_device:
-                raise RuntimeError(f'Device "{device}" not available')
+                raise RuntimeError(f'Device {device} not available')
             self._log(f'Device {device} not available, using {available_device}')
         else:
             self._log(f'Using {available_device}')
