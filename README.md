@@ -2,8 +2,15 @@
 `fasttrain` is a lightweight framework for building training loops for neural nets as fast as possible. It's designed to remove all boring details about making up training loops in [PyTorch](https://pytorch.org/), so you don't have to concentrate on how to pretty print a loss or metrics or bother about how to calculate them right.
 
 ## Installation
+Stable version:
 ```
 $ pip install fasttrain
+```
+Latest version:
+```
+$ git clone https://github.com/samedit66/fasttrain.git
+$ cd fasttrain
+$ pip install -e .
 ```
 
 ## How do we start?
