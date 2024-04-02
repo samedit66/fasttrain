@@ -66,26 +66,29 @@ class Trainer(ABC):
         '''
         This function is called every time when the loss value is needed.
         You need to define how the loss value is computed. This method must return a `torch.Tensor`.
+
         :param input_batch: Batch that the DataLoader yields.
         :param output_batch: Model output batch.
         :return: Loss value.
         '''
 
-    @abstractmethod
-    def eval_metrics(self, input_batch, output_batch) -> Mapping:
+    def eval_metrics(self, input_batch, output_batch) -> Optional[Mapping]:
         '''
-        This function is called every time when metrics' values are needed.
-        You need to define how they are computed. This method should return
-        a dict-like object that contains metrics.
+        Evaluates metrics. Called everytime when model predictions are made.
+        If defined, the returned metrics are stored in a `History`.
+        Metrics must be a dict or a mapping.
+
         :param input_batch: Batch that the DataLoader yields.
         :param output_batch: Model output batch.
         :return: Metrics.
         '''
+        return None
 
     @property
     def model(self) -> torch.nn.Module:
         '''
         Returns training model.
+
         :return: Training model.
         '''
         return self._model
@@ -94,6 +97,7 @@ class Trainer(ABC):
     def is_training(self) -> bool:
         '''
         Returns a bool value whether the model is training now.
+
         :return: `True` if the model is training, `False` otherwise. 
         '''
         return self._is_training
@@ -265,7 +269,7 @@ class Trainer(ABC):
         for (batch_num, input_batch) in enumerate(data_gen):
             self._on_train_batch_begin(batch_num)
             output_batch, loss_value = self._compute_loss(input_batch, training=True)
-            metrics = self.eval_metrics(input_batch, output_batch)
+            metrics = self.eval_metrics(input_batch, output_batch) or {}
             metrics["loss"] = loss_value
             history.update(metrics)
             self._on_train_batch_end(batch_num, history.average)
@@ -281,7 +285,7 @@ class Trainer(ABC):
         for (batch_num, input_batch) in enumerate(data_gen):
             self._on_validation_batch_begin(batch_num)
             output_batch, loss_value = self._compute_loss(input_batch, training=False)
-            metrics = self.eval_metrics(input_batch, output_batch)
+            metrics = self.eval_metrics(input_batch, output_batch) or {}
             metrics = {f'val_{k}': v for (k, v) in metrics.items()}
             metrics['val_loss'] = loss_value
             history.update(metrics)
