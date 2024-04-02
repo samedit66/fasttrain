@@ -13,38 +13,59 @@ class Callback(ABC):
     To create a custom callback, subclass `fasttrain.callbacks.Callback` and
     override the method associated with the stage of interest.
 
-    To access the trainer, one should use `self.trainer`.
-    To access the training model, one should use `self.model`.
+    Callbacks have access to the trainer, the model and training arguments.
     '''
 
     def __init__(self) -> None:
         self._trainer = None
         self._model = None
-        self._training_params = None
+        self._training_args = None
 
     @property
     def trainer(self):
+        '''
+        Returns the trainer associated with the callback.
+
+        :return: The `Trainer` associated with the callback.
+        '''
         return self._trainer
     
     @trainer.setter
     def trainer(self, new_trainer):
+        if self._trainer is not None:
+            raise RuntimeError('Trainer can be set only once')
         self._trainer = new_trainer
 
     @property
     def model(self):
+        '''
+        Returns the model associated with the callback.
+
+        :return: The model associated with the callback.
+        '''
         return self._model
     
     @model.setter
     def model(self, new_model):
+        if self._model is not None:
+            raise RuntimeError('Model can be set only once')
         self._model = new_model
 
     @property
-    def training_params(self):
-        return self._training_params
+    def training_args(self):
+        '''
+        Returns training arguments. Currently, they include the number of epochs
+        and the batch size. Example: `self.training_args['epochs_num'], self.training_args['batch_size']`.
+
+        :return: Training arguments.
+        '''
+        return self._training_args
     
-    @training_params.setter
-    def training_params(self, new_training_params):
-        self._training_params = new_training_params
+    @training_args.setter
+    def training_args(self, new_training_args):
+        if self._training_args is not None:
+            raise RuntimeError('Training arguments can be set only once')
+        self._training_args = new_training_args
 
     def on_train_begin(self,
                        logs: collections.abc.Mapping | None = None
