@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence, Mapping
+from typing import Optional, Union
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -14,6 +15,9 @@ from .device import (
     load_data_on_device,
     find_suitable_device,
     )
+
+
+_OptimizerAndScheduler = Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]
 
 
 class Trainer(ABC):
@@ -94,18 +98,43 @@ class Trainer(ABC):
         '''
         return self._is_training
 
-    @is_training.setter
-    def is_training(self, status: bool) -> None:
+    #@abstractmethod
+    def load_dataset(self) -> None:
         '''
-        Sets the status of training. This function must be used only inside a `Callback` class to
-        stop model training and to stop model training.
-        :param status: Status of training. When `False` and the model was in training mode,
-        training immediatly stops.
+        Loads the dataset.
+        Define here download instructions, splits, preprocessing and other such things.
+        This method does not return anything: store the dataset as `Trainer` attributes.
         '''
-        if not isinstance(status, bool):
-            raise TypeError('Expect a value of bool type')
 
-        self._is_training = status
+    #@abstractmethod
+    def train_data_loader(self) -> torch.utils.data.DataLoader:
+        '''
+        Makes up a training `DataLoader`.
+        '''
+
+    def val_data_loader(self) -> Optional[torch.utils.data.DataLoader]:
+        '''
+        Makes up a validation `DataLoader`. If defined, used to obtain the validation `DataLoader`.
+        '''
+        return None
+    
+    def test_data_loader(self) -> Optional[torch.utils.data.DataLoader]:
+        '''
+        Makes up a test `DataLoader`. If defined, used to obtain the test `DataLoader`.
+        '''
+        return None
+    
+    #@abstractmethod
+    def make_optimizer(self) -> torch.optim.Optimizer | _OptimizerAndScheduler:
+        '''
+        Makes up an optimizer with ot without a learning rate scheduler.
+        '''
+
+    def _stop_training(self) -> None:
+        '''
+        Stops the training. Must be used only inside a `Callback` class.
+        '''
+        self._is_training = False
 
     def _on_train_begin(self):
         for cb in self._callbacks:
@@ -266,7 +295,7 @@ class Trainer(ABC):
                        num_epochs: int,
                        ) -> History:
         history = History()
-        self.is_training = True
+        self._is_training = True
         self._on_train_begin()
         current_epoch_num = 1
         while self.is_training and current_epoch_num <= num_epochs:
@@ -277,7 +306,7 @@ class Trainer(ABC):
             self._on_epoch_end(current_epoch_num, metrics)
             history.update(metrics)
             current_epoch_num += 1
-        self.is_training = False
+        self._stop_training()
         self._on_train_end()
         return history
 

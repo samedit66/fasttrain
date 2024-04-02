@@ -68,7 +68,7 @@ class EarlyStopping(Callback):
     def on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
         if self._remaining_patience == 0:
             self._stopped_epoch = epoch_num
-            self.trainer.is_training = False
+            self.trainer._stop_training()
             return
 
         if self._last_metric_value is None and self._best_metric_value is None:
