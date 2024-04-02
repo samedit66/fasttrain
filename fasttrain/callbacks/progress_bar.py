@@ -1,4 +1,5 @@
-from sys import stderr
+import sys
+from typing import Mapping
 import re
 
 from tqdm import tqdm
@@ -49,7 +50,7 @@ class Tqdm(Callback):
                  leave_outer: bool = True,
                  show_inner: bool = True,
                  show_outer: bool = True,
-                 output_file = stderr,
+                 output_file=sys.stderr,
                  initial: int = 0,
                  in_notebook: bool = False,
                  ) -> None:
@@ -101,24 +102,24 @@ class Tqdm(Callback):
                           leave=self._leave_inner,
                           )
 
-    def on_train_begin(self, logs={}):
+    def on_train_begin(self) -> None:
         if self._show_outer:
-            num_epochs = self.training_params['num_epochs']
+            num_epochs = self.training_args['num_epochs']
             self._tqdm_outer = self._build_tqdm_outer(desc=self._outer_desc, total=num_epochs)
 
-    def on_train_end(self, logs={}):
+    def on_train_end(self, logs: Mapping) -> None:
         if self._show_outer:
             self._tqdm_outer.close()
 
-    def on_epoch_begin(self, epoch_num, logs={}):
+    def on_epoch_begin(self, epoch_num: int) -> None:
         self._current_epoch_num = epoch_num
         desc = self._inner_desc_initial.format(epoch_num=epoch_num)
-        self._inner_total = self.training_params['num_batches']
+        self._inner_total = self.training_args['num_batches']
         if self._show_inner:
             self._tqdm_inner = self._build_tqdm_inner(desc=desc, total=self._inner_total)
         self._inner_count = 0
 
-    def on_epoch_end(self, epoch_num, logs={}):
+    def on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
         metrics = self.format_metrics(logs)
         desc = self._inner_desc_update.format(epoch_num=epoch_num, metrics=metrics)
         if self._show_inner:
@@ -131,7 +132,7 @@ class Tqdm(Callback):
         if self._show_outer:
             self._tqdm_outer.update(1)
 
-    def on_train_batch_end(self, batch_num, logs={}):
+    def on_train_batch_end(self, batch_num: int, logs: Mapping) -> None:
         update = 1
         self._inner_count += update
         if self._inner_count < self._inner_total:

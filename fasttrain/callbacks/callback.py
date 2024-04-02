@@ -54,7 +54,8 @@ class Callback(ABC):
     def training_args(self) -> Mapping:
         '''
         Returns training arguments. Currently, they include the number of epochs
-        and the batch size. Example: `self.training_args['epochs_num'], self.training_args['batch_size']`.
+        and the number of batches for the training data loader.
+        Example: `self.training_args['num_epochs'], self.training_args['num_batches']`.
 
         :return: Training arguments.
         '''

@@ -64,7 +64,7 @@ class Checkpoint(Callback):
         file_path = self._file_path.format(**kwargs)
         torch.save(self.model.state_dict(), file_path)
 
-    def on_train_begin(self, logs: Mapping | None = None) -> None:
+    def on_train_begin(self) -> None:
         path = Path(self._file_path)
         if path.parent != Path('.'):
             if path.parent.exists():
@@ -73,27 +73,27 @@ class Checkpoint(Callback):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 self.trainer._log(f'Created checkpoint directory: {path.parent}')
 
-    def on_train_end(self, logs={}):
+    def on_train_end(self, logs: Mapping) -> None:
         if self._best_model_weights is not None:
             self.trainer._log(f'Saving best model weights from the end of the best epoch: {self._best_epoch}.')
             self._save_model(epoch_num=self._best_epoch,
                              **self._best_metrics)
 
-    def on_train_batch_end(self, batch_num: int, logs: Mapping | None = None) -> None:
+    def on_train_batch_end(self, batch_num: int, logs: Mapping) -> None:
         if (self._monitor is not None) and \
            (not self._monitor.startswith("val")) and \
            (logs is not None) and \
            (logs.get(self._monitor) is None):
             raise ValueError(f'Expected metric to monitor "{self._monitor}" not found')
         
-    def on_validation_batch_end(self, batch_num: int, logs: Mapping | None = None) -> None:
+    def on_validation_batch_end(self, batch_num: int, logs: Mapping) -> None:
         if (self._monitor is not None) and \
            (self._monitor.startswith("val")) and \
            (logs is not None) and \
            (logs.get(self._monitor) is None):
             raise ValueError(f'Expected metric to monitor "{self._monitor}" not found')
 
-    def on_epoch_end(self, epoch_num, logs={}):
+    def on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
         if self._monitor is None:
             self._save_model(epoch_num=epoch_num, **logs)
             return

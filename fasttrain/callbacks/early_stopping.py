@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from . import Callback
 from ._colors import paint
 
@@ -23,6 +25,7 @@ class EarlyStopping(Callback):
                  mode: str = 'min',
                  restore_best_weights: bool = True,
                  ) -> None:
+        super().__init__()
         assert isinstance(patience, int) and patience >= 1 
         self._patience = patience
         self._monitor = monitor
@@ -47,7 +50,7 @@ class EarlyStopping(Callback):
         elif self._mode == 'max':
             return metric_value >= self._best_metric_value
 
-    def on_train_end(self, logs=None):
+    def on_train_end(self, logs: Mapping) -> None:
         if self._stopped_epoch is not None:
             self.trainer._log(
                 f'Epoch: {self._stopped_epoch} - early stopping.'
@@ -62,7 +65,7 @@ class EarlyStopping(Callback):
                 self.trainer._log('No model weights were saved... '
                                  f'Maybe you specified wrong mode? Mode specidifed: "{self._mode}"')
 
-    def on_epoch_end(self, epoch_num, logs=None):
+    def on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
         if self._remaining_patience == 0:
             self._stopped_epoch = epoch_num
             self.trainer.is_training = False

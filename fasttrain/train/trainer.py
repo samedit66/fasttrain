@@ -107,44 +107,44 @@ class Trainer(ABC):
 
         self._is_training = status
 
-    def _on_train_begin(self, logs={}):
+    def _on_train_begin(self):
         for cb in self._callbacks:
-            cb.on_train_begin(logs)
+            cb.on_train_begin()
 
-    def _on_train_end(self, logs=None):
+    def _on_train_end(self):
         for cb in self._callbacks:
             cb.on_train_end(self._last_on_epoch_end_logs)
 
-    def _on_epoch_begin(self, epoch_num, logs=None):
+    def _on_epoch_begin(self, epoch_num):
         for cb in self._callbacks:
-            cb.on_epoch_begin(epoch_num, logs)
+            cb.on_epoch_begin(epoch_num)
 
-    def _on_epoch_end(self, epoch_num, logs=None):
+    def _on_epoch_end(self, epoch_num, logs):
         self._last_on_epoch_end_logs = logs
         for cb in self._callbacks:
             cb.on_epoch_end(epoch_num, logs)
 
-    def _on_train_batch_begin(self, batch_num, logs=None):
+    def _on_train_batch_begin(self, batch_num):
         for cb in self._callbacks:
-            cb.on_train_batch_begin(batch_num, logs)
+            cb.on_train_batch_begin(batch_num)
 
-    def _on_train_batch_end(self, batch_num, logs=None):
+    def _on_train_batch_end(self, batch_num, logs):
         for cb in self._callbacks:
             cb.on_train_batch_end(batch_num, logs)
 
-    def _on_validation_begin(self, logs=None):
+    def _on_validation_begin(self):
         for cb in self._callbacks:
-            cb.on_validation_begin(logs)
+            cb.on_validation_begin()
 
-    def _on_validation_end(self, logs=None):
+    def _on_validation_end(self, logs):
         for cb in self._callbacks:
             cb.on_validation_end(logs)
 
-    def _on_validation_batch_begin(self, batch_num, logs=None):
+    def _on_validation_batch_begin(self, batch_num):
         for cb in self._callbacks:
-            cb.on_validation_batch_begin(batch_num, logs)
+            cb.on_validation_batch_begin(batch_num)
 
-    def _on_validation_batch_end(self, batch_num, logs=None):
+    def _on_validation_batch_end(self, batch_num, logs):
         for cb in self._callbacks:
             cb.on_validation_batch_end(batch_num, logs)
 
@@ -181,7 +181,7 @@ class Trainer(ABC):
 
     def _setup_callbacks(self,
                          user_callbacks,
-                         training_params: dict,
+                         training_args: dict,
                          ) -> None:
         if user_callbacks is None:
             user_callbacks = []
@@ -194,7 +194,7 @@ class Trainer(ABC):
             progress_bar = Tqdm(in_notebook=self._in_notebook)
             progress_bar.model = self.model
             progress_bar.trainer = self
-            progress_bar.training_params = training_params
+            progress_bar.training_args = training_args
             self._callbacks.append(progress_bar)
         
         for user_callback in user_callbacks:
@@ -203,7 +203,7 @@ class Trainer(ABC):
 
             user_callback.model = self.model
             user_callback.trainer = self
-            user_callback.training_params = training_params
+            user_callback.training_args = training_args
             self._callbacks.append(user_callback)
 
     def _get_data_loader(self,
@@ -336,12 +336,12 @@ class Trainer(ABC):
 
         self._verbose = verbose
         self._in_notebook = in_notebook
-        training_params = {
+        training_args = {
             'num_epochs': num_epochs,
             # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
             'num_batches': len(train_dl),
             }
-        self._setup_callbacks(callbacks, training_params)
+        self._setup_callbacks(callbacks, training_args)
 
         history = self._training_loop(train_dl, val_dl, num_epochs)
         return history
