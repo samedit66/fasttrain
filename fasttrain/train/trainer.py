@@ -24,7 +24,7 @@ class Trainer(ABC):
     '''
     Base class for all user defined trainers. Usually, to make up a trainer,
     one should subclass `Trainer` and define `predict`, `compute_loss` and `eval_metrics`.
-    Although you don't have to always define `predict` (see its docs).
+    Although, you don't have to always define `predict` (see its docs).
     '''
 
     def __init__(self,
@@ -65,7 +65,8 @@ class Trainer(ABC):
     def compute_loss(self, input_batch, output_batch) -> torch.Tensor:
         '''
         This function is called every time when the loss value is needed.
-        You need to define how the loss value is computed. This method must return a `torch.Tensor`.
+        You need to define how the loss value is computed.
+        This method must return a `torch.Tensor`.
 
         :param input_batch: Batch that the DataLoader yields.
         :param output_batch: Model output batch.
@@ -87,7 +88,7 @@ class Trainer(ABC):
     @property
     def model(self) -> torch.nn.Module:
         '''
-        Returns training model.
+        Returns the training model.
 
         :return: Training model.
         '''
@@ -136,7 +137,7 @@ class Trainer(ABC):
 
     def _stop_training(self) -> None:
         '''
-        Stops the training. Must be used only inside a `Callback` class.
+        Stops the training. Must be called only inside a `Callback` class.
         '''
         self._is_training = False
 
@@ -337,15 +338,15 @@ class Trainer(ABC):
             appears and no messages are printed.
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
-        :param force_device: Boolean. If `True` and `device` is not available, raises RuntimeError. Default to `True`.
+        :param force_device: Boolean. If `True` and `device` is not available, raises `RuntimeError`. Default to `True`.
             Used if `device` is not `"auto"`.
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
-            The model will not be trained on this data. Can be either a Dataset or DataLoader object. If it's a DataLoader,
+            The model will not be trained on this data. Can be either a `Dataset` or `DataLoader` object. If it is a DataLoader,
             `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
             from the given Dataset object.
-        :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` aren't DataLoaders.
+        :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` are not DataLoaders.
         :param shuffle: Boolean, whether to shuffle the training data before each epoch. Default to `True`.
-            Used when `train_data` or `val_data` aren't DataLoaders.
+            Used when `train_data` or `val_data` are not `DataLoaders`.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
             The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
         :param in_notebook: Used to correctly display the progress bar. If `None`, tries to automatically detect
