@@ -269,11 +269,17 @@ class Trainer(ABC):
         data_gen = load_data_on_device(dl, self._device)
         for (batch_num, input_batch) in enumerate(data_gen):
             self._on_train_batch_begin(batch_num)
+            if not self.is_training:
+                break
+
             output_batch, loss_value = self._compute_loss(input_batch, training=True)
             metrics = self.eval_metrics(input_batch, output_batch) or {}
             metrics["loss"] = loss_value
             history.update(metrics)
+
             self._on_train_batch_end(batch_num, history.average)
+            if not self.is_training:
+                break
         
         return history.average
     
@@ -285,12 +291,18 @@ class Trainer(ABC):
         data_gen = load_data_on_device(dl, self._device)
         for (batch_num, input_batch) in enumerate(data_gen):
             self._on_validation_batch_begin(batch_num)
+            if not self.is_training:
+                break
+
             output_batch, loss_value = self._compute_loss(input_batch, training=False)
             metrics = self.eval_metrics(input_batch, output_batch) or {}
             metrics = {f'val_{k}': v for (k, v) in metrics.items()}
             metrics['val_loss'] = loss_value
             history.update(metrics)
+            
             self._on_validation_batch_end(batch_num, history.average)
+            if not self.is_training:
+                break
 
         return history.average
 
@@ -300,19 +312,30 @@ class Trainer(ABC):
                        num_epochs: int,
                        ) -> History:
         history = History()
+
         self._is_training = True
         self._on_train_begin()
         current_epoch_num = 1
+
         while self.is_training and current_epoch_num <= num_epochs:
             self._on_epoch_begin(current_epoch_num)
+            if not self.is_training:
+                break
+
             metrics = self._train(train_dl)
             if val_dl is not None:
                 metrics |= self._validate(val_dl)
-            self._on_epoch_end(current_epoch_num, metrics)
             history.update(metrics)
+
+            self._on_epoch_end(current_epoch_num, metrics)
+            if not self.is_training:
+                break 
+
             current_epoch_num += 1
+
         self._stop_training()
         self._on_train_end()
+
         return history
 
     def train(self,
