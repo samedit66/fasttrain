@@ -141,44 +141,44 @@ class Trainer(ABC):
         '''
         self._is_training = False
 
-    def _on_train_begin(self):
+    def _notify_on_train_begin(self) -> None:
         for cb in self._callbacks:
             cb.on_train_begin()
 
-    def _on_train_end(self):
+    def _notify_on_train_end(self) -> None:
         for cb in self._callbacks:
             cb.on_train_end(self._last_on_epoch_end_logs)
 
-    def _on_epoch_begin(self, epoch_num):
+    def _notify_on_epoch_begin(self, epoch_num: int) -> None:
         for cb in self._callbacks:
             cb.on_epoch_begin(epoch_num)
 
-    def _on_epoch_end(self, epoch_num, logs):
+    def _notify_on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
         self._last_on_epoch_end_logs = logs
         for cb in self._callbacks:
             cb.on_epoch_end(epoch_num, logs)
 
-    def _on_train_batch_begin(self, batch_num):
+    def _notify_on_train_batch_begin(self, batch_num: int) -> None:
         for cb in self._callbacks:
             cb.on_train_batch_begin(batch_num)
 
-    def _on_train_batch_end(self, batch_num, logs):
+    def _notify_on_train_batch_end(self, batch_num: int, logs: Mapping) -> None:
         for cb in self._callbacks:
             cb.on_train_batch_end(batch_num, logs)
 
-    def _on_validation_begin(self):
+    def _notify_on_validation_begin(self) -> None:
         for cb in self._callbacks:
             cb.on_validation_begin()
 
-    def _on_validation_end(self, logs):
+    def _notify_on_validation_end(self, logs: Mapping) -> None:
         for cb in self._callbacks:
             cb.on_validation_end(logs)
 
-    def _on_validation_batch_begin(self, batch_num):
+    def _notify_on_validation_batch_begin(self, batch_num: int) -> None:
         for cb in self._callbacks:
             cb.on_validation_batch_begin(batch_num)
 
-    def _on_validation_batch_end(self, batch_num, logs):
+    def _notify_on_validation_batch_end(self, batch_num: int, logs: Mapping) -> None:
         for cb in self._callbacks:
             cb.on_validation_batch_end(batch_num, logs)
 
@@ -268,7 +268,7 @@ class Trainer(ABC):
         history = History()
         data_gen = load_data_on_device(dl, self._device)
         for (batch_num, input_batch) in enumerate(data_gen):
-            self._on_train_batch_begin(batch_num)
+            self._notify_on_train_batch_begin(batch_num)
             if not self.is_training:
                 break
 
@@ -277,7 +277,7 @@ class Trainer(ABC):
             metrics["loss"] = loss_value
             history.update(metrics)
 
-            self._on_train_batch_end(batch_num, history.average)
+            self._notify_on_train_batch_end(batch_num, history.average)
             if not self.is_training:
                 break
         
@@ -290,7 +290,7 @@ class Trainer(ABC):
         history = History()
         data_gen = load_data_on_device(dl, self._device)
         for (batch_num, input_batch) in enumerate(data_gen):
-            self._on_validation_batch_begin(batch_num)
+            self._notify_on_validation_batch_begin(batch_num)
             if not self.is_training:
                 break
 
@@ -299,8 +299,8 @@ class Trainer(ABC):
             metrics = {f'val_{k}': v for (k, v) in metrics.items()}
             metrics['val_loss'] = loss_value
             history.update(metrics)
-            
-            self._on_validation_batch_end(batch_num, history.average)
+
+            self._notify_on_validation_batch_end(batch_num, history.average)
             if not self.is_training:
                 break
 
@@ -314,11 +314,11 @@ class Trainer(ABC):
         history = History()
 
         self._is_training = True
-        self._on_train_begin()
+        self._notify_on_train_begin()
         current_epoch_num = 1
 
         while self.is_training and current_epoch_num <= num_epochs:
-            self._on_epoch_begin(current_epoch_num)
+            self._notify_on_epoch_begin(current_epoch_num)
             if not self.is_training:
                 break
 
@@ -327,14 +327,14 @@ class Trainer(ABC):
                 metrics |= self._validate(val_dl)
             history.update(metrics)
 
-            self._on_epoch_end(current_epoch_num, metrics)
+            self._notify_on_epoch_end(current_epoch_num, metrics)
             if not self.is_training:
                 break 
 
             current_epoch_num += 1
 
         self._stop_training()
-        self._on_train_end()
+        self._notify_on_train_end()
 
         return history
 
