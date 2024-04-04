@@ -20,11 +20,37 @@ from .device import (
 _OptimizerAndScheduler = Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]
 
 
+def _is_in_notebook():
+    
+    def is_in_jupyter():
+        try:
+            shell = get_ipython().__class__.__name__
+            if shell == 'ZMQInteractiveShell':
+                return True   # Jupyter notebook or qtconsole
+            elif shell == 'TerminalInteractiveShell':
+                return False  # Terminal running IPython
+            else:
+                return False  # Other type (?)
+        except NameError:
+            return False      # Probably standard Python interpreter
+    
+    def is_in_colab():
+        try:
+            import google.colab
+            return True
+        except ImportError:
+            return False
+        
+    return is_in_colab() or is_in_jupyter()
+
+
 class Trainer(ABC):
     '''
     Base class for all user defined trainers. Usually, to make up a trainer,
     one should subclass `Trainer` and define `predict`, `compute_loss` and `eval_metrics`.
     Although, you don't have to always define `predict` (see its docs).
+
+    To access the training model, one should use `self.model` property.
     '''
 
     def __init__(self,
@@ -194,25 +220,6 @@ class Trainer(ABC):
         else:
             print(message)
 
-    def _is_in_notebook(self) -> bool:
-        try:
-            shell = get_ipython().__class__.__name__
-            if shell == 'ZMQInteractiveShell':
-                return True   # Jupyter notebook or qtconsole
-            elif shell == 'TerminalInteractiveShell':
-                return False  # Terminal running IPython
-            else:
-                return False  # Other type (?)
-        except NameError:
-            return False      # Probably standard Python interpreter
-
-    def _is_in_colab(self) -> bool:
-        try:
-            import google.colab
-            return True
-        except:
-            return False
-
     def _setup_callbacks(self,
                          user_callbacks,
                          training_args: dict,
@@ -221,9 +228,7 @@ class Trainer(ABC):
             user_callbacks = []
 
         if self._verbose:
-            if self._in_notebook is None:
-                self._in_notebook = self._is_in_notebook() or self._is_in_colab()
-
+            self._in_notebook = _is_in_notebook()
             self._log(f'Running as a {"notebook" if self._in_notebook else "script"}')
             progress_bar = Tqdm(in_notebook=self._in_notebook)
             progress_bar.model = self.model
