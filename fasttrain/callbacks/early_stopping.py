@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 
 from . import Callback
-from ._colors import paint
+from .._utils.colors import paint
 
 
 class EarlyStopping(Callback):
@@ -52,17 +52,17 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, logs: Mapping) -> None:
         if self._stopped_epoch is not None:
-            self.trainer._log(
+            self.trainer.log(
                 f'Epoch: {self._stopped_epoch} - early stopping.'
             )
         if self._restore_best_weights and self._best_epoch is not None:
-            self.trainer._log(
+            self.trainer.log(
                 f'Restoring model weights from the end of the best epoch: {self._best_epoch}.'
             )
             if self._best_model_weights:
                 self.model.load_state_dict(self._best_model_weights)
             else:
-                self.trainer._log('No model weights were saved... '
+                self.trainer.log('No model weights were saved... '
                                  f'Maybe you specified wrong mode? Mode specidifed: "{self._mode}"')
 
     def on_epoch_end(self, epoch_num: int, logs: Mapping) -> None:
@@ -86,7 +86,7 @@ class EarlyStopping(Callback):
                 self._best_model_weights = self.model.state_dict()
                 self._best_epoch = epoch_num
         else:
-            self.trainer._log(paint(f'Watch out, quality of {self._monitor} is decreasing!', 'orange'))
+            self.trainer.log(paint(f'Watch out, quality of {self._monitor} is decreasing!', 'orange'))
             self._remaining_patience -= 1
 
         self._last_metric_value = logs[self._monitor]

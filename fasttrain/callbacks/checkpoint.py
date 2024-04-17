@@ -68,14 +68,14 @@ class Checkpoint(Callback):
         path = Path(self._file_path)
         if path.parent != Path('.'):
             if path.parent.exists():
-                self.trainer._log(f'Model checkpoints will be written to the existing directory: {path.parent}')
+                self.trainer.log(f'Model checkpoints will be written to the existing directory: {path.parent}')
             else:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                self.trainer._log(f'Created checkpoint directory: {path.parent}')
+                self.trainer.log(f'Created checkpoint directory: {path.parent}')
 
     def on_train_end(self, logs: Mapping) -> None:
         if self._best_model_weights is not None:
-            self.trainer._log(f'Saving best model weights from the end of the best epoch: {self._best_epoch}.')
+            self.trainer.log(f'Saving best model weights from the end of the best epoch: {self._best_epoch}.')
             self._save_model(epoch_num=self._best_epoch,
                              **self._best_metrics)
 

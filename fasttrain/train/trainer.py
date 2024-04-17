@@ -1,10 +1,11 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence, Mapping
-from typing import Optional, Union
+from typing import Any
+import logging
 
 import torch
-from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ..callbacks import (
     Callback,
@@ -13,49 +14,23 @@ from ..callbacks import (
 from .history import History
 from .device import (
     load_data_on_device,
-    find_suitable_device,
+    Devices,
     )
-
-
-_OptimizerAndScheduler = Union[torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]
-
-
-def _is_in_notebook():
-    
-    def is_in_jupyter():
-        try:
-            shell = get_ipython().__class__.__name__
-            if shell == 'ZMQInteractiveShell':
-                return True   # Jupyter notebook or qtconsole
-            elif shell == 'TerminalInteractiveShell':
-                return False  # Terminal running IPython
-            else:
-                return False  # Other type (?)
-        except NameError:
-            return False      # Probably standard Python interpreter
-    
-    def is_in_colab():
-        try:
-            import google.colab
-            return True
-        except ImportError:
-            return False
-        
-    return is_in_colab() or is_in_jupyter()
+from .._utils.colors import paint
+from .._utils.env import is_in_notebook
 
 
 class Trainer(ABC):
     '''
-    Base class for all user defined trainers. Usually, to make up a trainer,
-    one should subclass `Trainer` and define `predict`, `compute_loss` and `eval_metrics`.
-    Although, you don't have to always define `predict` (see its docs).
-
-    To access the training model, one should use `self.model` property.
+    Base class for all user defined trainers.
+    To create a custom trainer, subclass `fasttrain.Trainer` and define/override
+    `predict`, `compute_loss`, and `eval_metrics`.
     '''
 
     def __init__(self,
                  model: torch.nn.Module,
                  optimizer: torch.optim.Optimizer,
+                 lr_scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
                  ) -> None:
         '''
         :param model: Model to train.
@@ -63,50 +38,45 @@ class Trainer(ABC):
         '''
         self._model = model
         self._opt = optimizer
+        self._lr_scheduler = lr_scheduler
         self._device = None
         self._is_training = False
         self._callbacks = []
         self._last_on_epoch_end_logs = {}
-        self._verbose = True
-        self._in_notebook = None
+        self._logger = self._get_logger()
 
-    def predict(self, input_batch):
+    def predict(self, input_batch: Any) -> Any:
         '''
-        This function is called every time when the model predictions are needed.
-        By default it expects a batch which should be a tuple or a list with 2 elements -
-        x-batch and y-batch. If your training data differs, you need to define a custom
-        predict function.
-        :param input_batch: Batch that the DataLoader yields.
-        :return: Model output batch.
+        Called when the model predictions are needed.
+        By default, unpacks input_batch into x and y, then calls `self.model` on x.
+
+        :param input_batch: Input batch from the training/validating `DataLoader`.
+        :return: Output batch.
         '''
-        if isinstance(input_batch, Sequence):
-            (x_batch, _) = input_batch
-            return self.model(x_batch)
-        
-        raise TypeError('Predefined predict failed, perhaps you need to define '
-                        'your custom predict function'
-                        )
+        x, _ = input_batch
+        output_batch = self.model(x)
+        return output_batch
 
     @abstractmethod
-    def compute_loss(self, input_batch, output_batch) -> torch.Tensor:
+    def compute_loss(self, input_batch: Any, output_batch: Any) -> torch.Tensor:
         '''
-        This function is called every time when the loss value is needed.
+        Called when the loss value is needed.
         You need to define how the loss value is computed.
         This method must return a `torch.Tensor`.
 
-        :param input_batch: Batch that the DataLoader yields.
-        :param output_batch: Model output batch.
+        :param input_batch: Input batch from the training/validating `DataLoader`.
+        :param output_batch: Batch returned by `predict(input_batch)`.
         :return: Loss value.
         '''
 
-    def eval_metrics(self, input_batch, output_batch) -> Optional[Mapping]:
+    def eval_metrics(self, input_batch: Any, output_batch: Any) -> Mapping[str, Any] | None:
         '''
-        Evaluates metrics. Called everytime when model predictions are made.
-        If defined, the returned metrics are stored in a `History`.
+        Evaluates metrics. Called when model predictions are made.
+        If defined, the returned metrics are stored in the history of training.
         Metrics must be a dict or a mapping.
 
-        :param input_batch: Batch that the DataLoader yields.
-        :param output_batch: Model output batch.
+        :param input_batch: Input batch from the training/validating `DataLoader`.
+        :param output_batch: Batch returned by `predict(input_batch)`.
         :return: Metrics.
         '''
         return None
@@ -129,42 +99,64 @@ class Trainer(ABC):
         '''
         return self._is_training
 
-    #@abstractmethod
-    def load_dataset(self) -> None:
+    def log(self, message: str) -> None:
         '''
-        Loads the dataset.
-        Define here download instructions, splits, preprocessing and other such things.
-        This method does not return anything: store the dataset as `Trainer` attributes.
+        Logs a message to stdout. Should be used to inform user about model training because
+        ordinary `print` may break up the progress bar. Use it only inside a custom `Callback`.
+        
+        :param message: Message to log.
         '''
+        with logging_redirect_tqdm():
+            self._logger.info(message)
 
-    #@abstractmethod
-    def train_data_loader(self) -> torch.utils.data.DataLoader:
-        '''
-        Makes up a training `DataLoader`.
-        '''
+    def _get_logger(self) -> logging.Logger:
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        return logger
 
-    def val_data_loader(self) -> Optional[torch.utils.data.DataLoader]:
-        '''
-        Makes up a validation `DataLoader`. If defined, used to obtain the validation `DataLoader`.
-        '''
-        return None
+    def _log_success(self, message: str) -> None:
+        if is_in_notebook():
+            self.log(message)
+        else:
+            self.log(paint(message, 'green'))
+
+    def _log_failure(self, message: str) -> None:
+        if is_in_notebook():
+            pass
+
+    def _setup_device(self, preferable_device: str | torch.device) -> torch.device:
+        if Devices.is_gpu_available():
+            self.log(f'CUDA found')
+        else:
+            self.log(f'CUDA not found')
+
+        if preferable_device == 'auto':
+            appropriate_device = Devices.appropriate_device()
+            device_name = str(appropriate_device).upper()
+        elif Devices.can_be_used(preferable_device):
+            appropriate_device = preferable_device
+        else:
+            device_name = str(preferable_device).upper()
+            self.log(f'Requested device {device_name} not available')
+            appropriate_device = Devices.appropriate_device()
+
+        device_name = str(appropriate_device).upper()
+        self.log(f'Using {device_name}')
+        self._device = appropriate_device
+
+    def _setup_callbacks(self,
+                          callbacks: Sequence[Callback],
+                          training_args: Mapping[str, Any],
+                          ) -> None:
+        default_callbacks = [Tqdm()]
+        all_callbacks = [*default_callbacks, *callbacks]
+        for cb in all_callbacks:
+            cb.trainer = self
+            cb.model = self.model
+            cb.training_args = training_args
+        self._callbacks = all_callbacks
     
-    def test_data_loader(self) -> Optional[torch.utils.data.DataLoader]:
-        '''
-        Makes up a test `DataLoader`. If defined, used to obtain the test `DataLoader`.
-        '''
-        return None
-    
-    #@abstractmethod
-    def make_optimizer(self) -> torch.optim.Optimizer | _OptimizerAndScheduler:
-        '''
-        Makes up an optimizer with ot without a learning rate scheduler.
-        '''
-
     def _stop_training(self) -> None:
-        '''
-        Stops the training. Must be called only inside a `Callback` class.
-        '''
         self._is_training = False
 
     def _notify_on_train_begin(self) -> None:
@@ -208,51 +200,6 @@ class Trainer(ABC):
         for cb in self._callbacks:
             cb.on_validation_batch_end(batch_num, logs)
 
-    def _log(self, message: str) -> None:
-        '''
-        Logs a message to stdout. Should be used to inform user about model training because
-        ordinary `print` may break up the progress bar. Use it only inside a custom `Callback`.
-        
-        :param message: Message to log.
-        '''
-        if self.is_training:
-            tqdm.write(message)
-        else:
-            print(message)
-
-    def _setup_callbacks(self,
-                         user_callbacks,
-                         training_args: dict,
-                         ) -> None:
-        if user_callbacks is None:
-            user_callbacks = []
-
-        if self._verbose:
-            self._in_notebook = _is_in_notebook()
-            self._log(f'Running as a {"notebook" if self._in_notebook else "script"}')
-            progress_bar = Tqdm(in_notebook=self._in_notebook)
-            progress_bar.model = self.model
-            progress_bar.trainer = self
-            progress_bar.training_args = training_args
-            self._callbacks.append(progress_bar)
-        
-        for user_callback in user_callbacks:
-            if self._verbose and isinstance(user_callbacks, Tqdm):
-                continue
-
-            user_callback.model = self.model
-            user_callback.trainer = self
-            user_callback.training_args = training_args
-            self._callbacks.append(user_callback)
-
-    def _get_data_loader(self,
-                         data: Dataset | DataLoader,
-                         batch_size: int,
-                         shuffle: bool) -> DataLoader:
-        if (data is None) or isinstance(data, DataLoader):
-            return data
-        return DataLoader(data, batch_size=batch_size, shuffle=shuffle)
-
     def _compute_loss(self,
                       input_batch,
                       training: bool
@@ -267,7 +214,7 @@ class Trainer(ABC):
 
         return (output_batch, loss.item())
     
-    def _train(self, dl: DataLoader) -> Mapping:
+    def _train(self, dl: torch.utils.data.DataLoader) -> Mapping:
         self.model.train()
 
         history = History()
@@ -289,7 +236,7 @@ class Trainer(ABC):
         return history.average
     
     @torch.no_grad()
-    def _validate(self, dl: DataLoader) -> Mapping:
+    def _validate(self, dl: torch.utils.data.DataLoader) -> Mapping:
         self.model.eval()
 
         history = History()
@@ -312,8 +259,8 @@ class Trainer(ABC):
         return history.average
 
     def _training_loop(self,
-                       train_dl: DataLoader,
-                       val_dl: DataLoader,
+                       train_dl: torch.utils.data.DataLoader,
+                       val_dl: torch.utils.data.DataLoader,
                        num_epochs: int,
                        ) -> History:
         history = History()
@@ -328,8 +275,13 @@ class Trainer(ABC):
                 break
 
             metrics = self._train(train_dl)
+            if not self.is_training:
+                break
+
             if val_dl is not None:
                 metrics |= self._validate(val_dl)
+                if not self.is_training:
+                    break
             history.update(metrics)
 
             self._notify_on_epoch_end(current_epoch_num, metrics)
@@ -344,16 +296,11 @@ class Trainer(ABC):
         return history
 
     def train(self,
-              train_data: Dataset | DataLoader,
+              train_dl: torch.utils.data.DataLoader,
               num_epochs: int,
-              verbose: bool = True,
+              val_dl: torch.utils.data.DataLoader | None = None,
+              callbacks: Sequence[Callback] = (),
               device: str | torch.device = 'auto',
-              force_device: bool = True,
-              val_data: Dataset | DataLoader | None = None,
-              batch_size: int = 16,
-              shuffle: bool = True,
-              callbacks: Sequence[Callback] | None = None,
-              in_notebook: bool | None = None,
               ) -> History:
         '''
         Trains the model for a fixed number of epochs.
@@ -362,46 +309,24 @@ class Trainer(ABC):
         `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a DataLoader
             from the given Dataset object.
         :param num_epochs: Integer. Number of epochs to train the model.
-        :param verbose: Verbosity mode. Default to `True`. If `False`, no progress bar
-            appears and no messages are printed.
         :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, cuda. 
-        :param force_device: Boolean. If `True` and `device` is not available, raises `RuntimeError`. Default to `True`.
-            Used if `device` is not `"auto"`.
         :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
             The model will not be trained on this data. Can be either a `Dataset` or `DataLoader` object. If it is a DataLoader,
             `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
             from the given Dataset object.
-        :param batch_size: Integer. Default to 16. Used when `train_data` or `val_data` are not DataLoaders.
-        :param shuffle: Boolean, whether to shuffle the training data before each epoch. Default to `True`.
-            Used when `train_data` or `val_data` are not `DataLoaders`.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
             The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
-        :param in_notebook: Used to correctly display the progress bar. If `None`, tries to automatically detect
-            whether running in a notebook or not. If `True`, forces to show a progress bar as it looks in a notebook
-            (leads to a strange-looking progress bar when not in a notebook).
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
-        available_device = find_suitable_device(desired_device=device)
-        if device != "auto" and str(available_device) != str(device):
-            if force_device:
-                raise RuntimeError(f'Device {device} not available')
-            self._log(f'Device {device} not available, using {available_device}')
-        else:
-            self._log(f'Using {available_device}')
-
-        self._device = available_device
+        self._setup_device(device)
         self._model = self._model.to(self._device)
 
-        train_dl = self._get_data_loader(train_data, batch_size, shuffle)
-        val_dl = self._get_data_loader(val_data, batch_size, shuffle)
-
-        self._verbose = verbose
-        self._in_notebook = in_notebook
         training_args = {
             'num_epochs': num_epochs,
             # TODO: Разобраться с IterableDataset при мультипроцессной загрузке данных
             'num_batches': len(train_dl),
+            'val_num_batches': len(val_dl),
             }
         self._setup_callbacks(callbacks, training_args)
 

@@ -2,11 +2,11 @@ import sys
 from typing import Mapping
 import re
 
-from tqdm import tqdm
-from tqdm.notebook import tqdm as tqdm_notebook
+from tqdm.auto import tqdm
 
 from . import Callback
-from ._colors import paint
+from .._utils.colors import paint
+from .._utils.env import is_in_notebook
 
 
 def _format_metrics(metrics: dict[str, float],
@@ -52,7 +52,6 @@ class Tqdm(Callback):
                  show_outer: bool = True,
                  output_file=sys.stderr,
                  initial: int = 0,
-                 in_notebook: bool = False,
                  ) -> None:
         super().__init__()
         self._outer_desc = outer_desc
@@ -66,7 +65,6 @@ class Tqdm(Callback):
         self._show_outer = show_outer
         self._output_file = output_file
         self._initial = initial
-        self._in_notebook = in_notebook
         self._current_epoch_num = 0
         self._tqdm_outer = None
         self._tqdm_inner = None
@@ -77,12 +75,10 @@ class Tqdm(Callback):
         return _format_metrics(logs,
                                metric_format=self._metric_format,
                                sep=self._sep,
-                               with_color=(not self._in_notebook))
+                               with_color=(not is_in_notebook()))
 
     def _tqdm(self, desc, total, leave, initial=0):
-        tqdm_ = tqdm_notebook if self._in_notebook else tqdm
-
-        return tqdm_(desc=desc,
+        return tqdm(desc=desc,
                     total=total,
                     leave=leave,
                     file=self._output_file,

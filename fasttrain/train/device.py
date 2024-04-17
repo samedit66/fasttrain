@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Sequence, Mapping, Iterable
 from typing import Any
 
@@ -5,47 +6,61 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def _available_devices() -> list[str]:
-    '''
-    Returns all available devices for training (includes only cpu and cuda devices!).
-    :return: Avalilable devices for training.
-    '''
-    devices = ['cpu']
-    if torch.cuda.is_available():
-        devices.append('cuda')
-        cuda_device_count = torch.cuda.device_count()
-        devices.extend(f'cuda:{i}' for i in range(cuda_device_count))
-    return devices
+class Devices:
 
+    @staticmethod
+    def available_devices() -> Sequence[torch.device]:
+        '''
+        Returns all found devices (includes only cpu and cuda devices if available).
+    
+        :return: Available devices.
+        '''
+        found_devices = [torch.device('cpu')]
+        if torch.cuda.is_available():
+            found_devices.append(torch.device('cuda'))
+            cuda_device_count = torch.cuda.device_count()
+            found_devices.extend(torch.device(f'cuda:{i}') for i in range(cuda_device_count))
 
-def find_suitable_device(desired_device: str | torch.device = 'auto') -> torch.device:
-    '''
-    Find suitable device for training.
+        return found_devices
 
-    :param desired_device: Desired device for training.
-        When `"auto"` tries to find out the most suitable device automaticly:
-        if cuda is enabled, it's returned, otherwise cpu is returned.
-        When not `"auto"` and `desired_device` can't be used (unavailable or incorrect name),
-        cpu is returned.
-    :return: Selected device for training.
-    '''
-    found_devices = _available_devices()
-    default_device = torch.device('cpu')
-    if desired_device == 'auto':
-        if 'cuda' in found_devices:
+    @staticmethod
+    def appropriate_device() -> torch.device:
+        '''
+        The most suitable device for using.
+
+        :return: Most suitable device for using.
+        '''
+        preferable = torch.device('cuda')
+        if preferable in Devices.available_devices():
+            return preferable
+        else:
             return torch.device('cuda')
-        return default_device
 
-    try:
-        desired_device = torch.device(desired_device)
-        _ = torch.tensor(1, device=desired_device)
-        return desired_device
-    except AssertionError:
-        # This should fail when the given device is unavailable.
-        return default_device
-    except RuntimeError:
-        # This should fail when the given device name is incorrect.
-        return default_device
+    @staticmethod
+    def can_be_used(device: str | torch.device) -> bool:
+        '''
+        Checks if the given device can be used.
+
+        :return: `True` if the given device can be used, `False` otherwise.
+        '''
+        try:
+            _ = torch.tensor(1, device=device)
+        except AssertionError:
+            # This should fail when the given device is unavailable.
+            return False
+        except RuntimeError:
+            # This should fail when the given device name is incorrect.
+            return False
+        return True
+
+    @staticmethod
+    def is_gpu_available() -> bool:
+        '''
+        Checks if GPU (CUDA) available.
+
+        :return: `True` if GPU (cuda) available, `False` otherwise.
+        '''
+        return torch.cuda.is_available()
 
 
 def load_data_on_device(dl: DataLoader, device: str | torch.device) -> Iterable[Any]:
