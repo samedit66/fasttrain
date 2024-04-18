@@ -124,11 +124,26 @@ class Trainer(ABC):
         if is_in_notebook():
             pass
 
-    def _setup_device(self, preferable_device: str | torch.device) -> torch.device:
+    @staticmethod
+    def cpu_name():
+        import subprocess
+        name = subprocess.check_output(["wmic", "cpu", "get", "name"])
+        return name.decode().strip().split('\n')[1]
+
+    def __log_cpu_and_gpu_info(self):
+        from .._utils.colors import success, fail, blue
+        cpu_message = blue(f'CPU found: {Trainer.cpu_name()}')
+        self.log(cpu_message)
+
         if Devices.is_gpu_available():
-            self.log(f'CUDA found')
+            self.log(success(f'CUDA found: {torch.cuda.get_device_name()}'))
         else:
-            self.log(f'CUDA not found')
+            self.log(fail(f'CUDA not found'))
+
+
+    def _setup_device(self, preferable_device: str | torch.device) -> torch.device:
+        from .._utils.colors import success, fail, underline, blue
+        self.__log_cpu_and_gpu_info()
 
         if preferable_device == 'auto':
             appropriate_device = Devices.appropriate_device()
@@ -137,11 +152,11 @@ class Trainer(ABC):
             appropriate_device = preferable_device
         else:
             device_name = str(preferable_device).upper()
-            self.log(f'Requested device {device_name} not available')
+            self.log(fail(f'Requested device {device_name} not available'))
             appropriate_device = Devices.appropriate_device()
 
         device_name = str(appropriate_device).upper()
-        self.log(f'Using {device_name}')
+        self.log(underline(f'Using {device_name}'))
         self._device = appropriate_device
 
     def _setup_callbacks(self,
