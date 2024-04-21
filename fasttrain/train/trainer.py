@@ -12,12 +12,16 @@ from ..callbacks import (
     Tqdm    
     )
 from .history import History
-from .device import (
+from .hardware import (
     load_data_on_device,
-    Devices,
+    can_be_used,
+    appropriate_device,
+    get_cpu_name,
+    get_gpu_name,
     )
 from .._utils.colors import paint
 from .._utils.env import is_in_notebook
+from .._utils.colors import success, fail, blue
 
 
 class Trainer(ABC):
@@ -114,50 +118,43 @@ class Trainer(ABC):
         logger.setLevel(logging.INFO)
         return logger
 
-    def _log_success(self, message: str) -> None:
-        if is_in_notebook():
-            self.log(message)
-        else:
-            self.log(paint(message, 'green'))
-
-    def _log_failure(self, message: str) -> None:
-        if is_in_notebook():
-            pass
-
-    @staticmethod
-    def cpu_name():
-        import subprocess
-        name = subprocess.check_output(["wmic", "cpu", "get", "name"])
-        return name.decode().strip().split('\n')[1]
-
     def __log_cpu_and_gpu_info(self):
-        from .._utils.colors import success, fail, blue
-        cpu_message = blue(f'CPU found: {Trainer.cpu_name()}')
-        self.log(cpu_message)
-
-        if Devices.is_gpu_available():
-            self.log(success(f'CUDA found: {torch.cuda.get_device_name()}'))
+        cpu_name = get_cpu_name()
+        if cpu_name is None:
+            self.log(fail('Can not recognize CPU'))
+        
+        # Yup, there are actually 2 whitespaces instead of one -
+        # otherwise the printing isn't pretty for me.
+        cpu_msg = 'CPU  found: %s'
+        if 'Intel' in cpu_name:
+            cpu_msg = cpu_msg % blue(cpu_name)
+        elif 'AMD' in cpu_name:
+            cpu_msg = cpu_msg % fail(cpu_name)
         else:
-            self.log(fail(f'CUDA not found'))
+            cpu_msg = cpu_msg % cpu_name
+        self.log(cpu_msg)
 
+        if torch.cuda.is_available():
+            cuda_name = get_gpu_name()
+            cuda_msg = f'CUDA found: {success(cuda_name)}'
+            self.log(cuda_msg)
+        else:
+            self.log(fail('CUDA not found'))
 
-    def _setup_device(self, preferable_device: str | torch.device) -> torch.device:
-        from .._utils.colors import success, fail, underline, blue
+    def __setup_device(self,
+                       preferable_device: str | torch.device,
+                       ) -> None:
         self.__log_cpu_and_gpu_info()
 
-        if preferable_device == 'auto':
-            appropriate_device = Devices.appropriate_device()
-            device_name = str(appropriate_device).upper()
-        elif Devices.can_be_used(preferable_device):
-            appropriate_device = preferable_device
-        else:
+        if preferable_device != 'auto' and not can_be_used(preferable_device):
             device_name = str(preferable_device).upper()
-            self.log(fail(f'Requested device {device_name} not available'))
-            appropriate_device = Devices.appropriate_device()
+            self.log(fail(f'Requested device {device_name} not available, default one will be used'))
 
-        device_name = str(appropriate_device).upper()
-        self.log(underline(f'Using {device_name}'))
-        self._device = appropriate_device
+        chosen_device = appropriate_device(preferable_device)
+        device_name = str(chosen_device).upper()
+        self.log(f'Using {device_name}')
+
+        self._device = chosen_device
 
     def _setup_callbacks(self,
                           callbacks: Sequence[Callback],
@@ -216,9 +213,9 @@ class Trainer(ABC):
             cb.on_validation_batch_end(batch_num, logs)
 
     def _compute_loss(self,
-                      input_batch,
-                      training: bool
-                      ):
+                      input_batch: Any,
+                      training: bool,
+                      ) -> tuple[Any, float]:
         output_batch = self.predict(input_batch)
         loss = self.compute_loss(input_batch, output_batch)
 
@@ -334,7 +331,7 @@ class Trainer(ABC):
             The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
-        self._setup_device(device)
+        self.__setup_device(preferable_device=device)
         self._model = self._model.to(self._device)
 
         training_args = {
