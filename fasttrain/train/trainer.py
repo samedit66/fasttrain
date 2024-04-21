@@ -317,18 +317,14 @@ class Trainer(ABC):
         '''
         Trains the model for a fixed number of epochs.
 
-        :param train_data: A Dataset or DataLoader object. If it's a DataLoader,
-        `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a DataLoader
-            from the given Dataset object.
+        :param train_dl: Data on which to train the model.
         :param num_epochs: Integer. Number of epochs to train the model.
-        :param device: `"auto"`, `"cpu"`, `"cuda"`. Default to `"auto"`. If `"auto"`, tries
-            to automatically detect suitable device for training, preferrably, cuda. 
-        :param val_data: Data on which to evaluate the loss and any model metrics at the end of each epoch.
-            The model will not be trained on this data. Can be either a `Dataset` or `DataLoader` object. If it is a DataLoader,
-            `batch_size` and `shuffle` are ignored. Otherwise, `train` makes up a validation DataLoader
-            from the given Dataset object.
+        :param device: Defaults to `"auto"`. If `"auto"`, tries
+            to automatically detect suitable device for training, preferrably, CUDA. 
+        :param val_dl: Data on which to evaluate the loss and any model metrics at the end of each epoch.
+            The model will not be trained on this data.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
-            The use of the progress bar callback is controlled by `verbose`, one don't need to add it explicity.
+            Tqdm callback, which prints the progress bar, is added automaticly.
         :return: History object. The history of training which includes validation metrics if `val_data` present.
         '''
         self.__setup_device(preferable_device=device)
