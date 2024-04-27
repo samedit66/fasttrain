@@ -19,8 +19,6 @@ from .hardware import (
     get_cpu_name,
     get_gpu_name,
     )
-from .._utils.colors import paint
-from .._utils.env import is_in_notebook
 from .._utils.colors import success, fail, blue
 
 
@@ -156,7 +154,7 @@ class Trainer(ABC):
 
         self._device = chosen_device
 
-    def _setup_callbacks(self,
+    def __setup_callbacks(self,
                           callbacks: Sequence[Callback],
                           training_args: Mapping[str, Any],
                           ) -> None:
@@ -322,7 +320,7 @@ class Trainer(ABC):
         :param device: Defaults to `"auto"`. If `"auto"`, tries
             to automatically detect suitable device for training, preferrably, CUDA. 
         :param val_dl: Data on which to evaluate the loss and any model metrics at the end of each epoch.
-            The model will not be trained on this data.
+            The model will not be trained on this data. Defaults to `None`.
         :param callbacks: Callbacks to interact with the model and metrics during various stages of training.
             Tqdm callback, which prints the progress bar, is added automaticly.
         :return: History object. The history of training which includes validation metrics if `val_data` present.
@@ -336,7 +334,7 @@ class Trainer(ABC):
             'num_batches': len(train_dl),
             'val_num_batches': len(val_dl),
             }
-        self._setup_callbacks(callbacks, training_args)
+        self.__setup_callbacks(callbacks, training_args)
 
         history = self._training_loop(train_dl, val_dl, num_epochs)
         return history
