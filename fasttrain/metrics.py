@@ -2,46 +2,59 @@ import torch
 import torch.nn.functional as F
 
 
-def accuracy(
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor,
-        task: str = "binary",
-        threshold: float | None = None,
-        average: str | None = None
-        ) -> torch.Tensor:
+def _check_type(y_pred: torch.Tensor, y_true: torch.Tensor) -> str:
+    '''
+    Tries to find out the type of classification by the shapes of
+    predicted labels/classes and expected ones.
+    `'_scores'` ending types indicate that thresholding needs to be applied.
+    '''
+    match (y_pred.shape, y_true.shape):
+        case [n], [m] if n == m:
+            if torch.equal(y_pred, y_pred**2) and torch.equal(y_true, y_true**2):
+                return 'binary'
+            elif torch.equal(y_true, y_true**2):
+                return 'binary_scores'
+            return 'multiclass'
+        case [n, m], [k] if n == k:
+            return 'multiclass_scores'
+        case [n, m], [k, t] if n == k and m == t:
+            if torch.equal(y_pred, y_pred**2) and torch.equal(y_true, y_true**2):
+                return 'multilabel'
+            return 'multilabel_scores'
+        case _:
+            raise ValueError("Can't guess the type of classification "
+                             f'from y_pred (shape={y_pred.shape}) and '
+                             f'y_true (shape={y_true.shape})'
+                             )
 
-    assert task in {"binary", "multiclass", "multilabel"}, \
-        'task must be "binary", "multiclass" or "multilabel"'
 
-    assert threshold is None or 0 < threshold < 1, \
-        "threshold must be either None or in (0; 1)"
+def accuracy(y_pred: torch.Tensor,
+             y_true: torch.Tensor,
+             threshold: float = 0.5,
+             average: str | None = "macro",
+             multilabel: str = "hamming",
+             ) -> torch.Tensor:
+    type_ = _check_type(y_pred, y_true)
+    
+    if type_ in {'binary_scores', 'multilabel_scores'}:
+        y_pred = (y_pred > threshold).float()
+    elif type_ == 'multiclass_scores':
+        y_pred = torch.argmax(y_pred, dim=1)
 
-    assert average is None or average == "macro", \
-        'average must be either None or "macro"'
-
-    if task in {"binary", "multilabel"} and threshold is not None:
-        y_pred = (y_pred > threshold).type(torch.float)
-
-    if task == "binary":
+    if type_ in {'binary', 'binary_scores', 'multiclass', 'multiclass_scores'}:
         correct = (y_pred == y_true).view(-1)
-    elif task == "multiclass":
-        if not torch.all(torch.logical_or(y_pred == 0, y_pred == 1)):
-            y_pred = torch.argmax(y_pred, dim=1)
-
-        correct = (y_pred == y_true).view(-1)
-    elif task == "multilabel":
-        # Считаем correct по каждому лейблу
-        y_pred = torch.transpose(y_pred, 0, 1)
-        y_true = torch.transpose(y_true, 0, 1)
-        correct = y_pred == y_true
+    elif type_ in {'multilabel', 'multilabel_scores'}:
+        if multilabel == "hamming":
+            y_pred = torch.transpose(y_pred, 0, 1)
+            y_true = torch.transpose(y_true, 0, 1)
+            correct = y_pred == y_true 
+        elif multilabel == "exact":
+            correct = torch.all(y_pred == y_true, dim=-1)
 
     total = correct.shape[-1]
     accuracy_ = torch.sum(correct, dim=-1) / total
-
-    # Вычисляем средний accuracy как среднее всех accuracy по лейблам (macro-accuracy)
-    if task == "multilabel" and average == "macro":
+    if average == "macro":
         return torch.mean(accuracy_)
-
     return accuracy_
 
 
