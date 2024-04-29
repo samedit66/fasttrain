@@ -4,13 +4,13 @@
 ## Installation
 Stable version:
 ```
-$ pip install fasttrain
+pip install fasttrain
 ```
 Latest version:
 ```
-$ git clone https://github.com/samedit66/fasttrain.git
-$ cd fasttrain
-$ pip install -e .
+git clone https://github.com/samedit66/fasttrain.git
+cd fasttrain
+pip install .
 ```
 
 ## How do we start?
@@ -79,7 +79,7 @@ class MyTrainer(Trainer):
     def eval_metrics(self, input_batch, output_batch):
         (_, y_batch) = input_batch
         return {
-            "accuracy": accuracy(output_batch, y_batch, task="multiclass")
+            "accuracy": accuracy(output_batch, y_batch)
         }
 ```
 
