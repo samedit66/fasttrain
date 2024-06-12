@@ -6,7 +6,8 @@ def _check_type(y_pred: torch.Tensor, y_true: torch.Tensor) -> str:
     '''
     Tries to find out the type of classification by the shapes of
     predicted labels/classes and expected ones.
-    `'_scores'` ending types indicate that thresholding needs to be applied.
+    `'_scores'` ending types indicate that "thresholding" or "argmaxing"
+    needs to be applied.
     '''
     match (y_pred.shape, y_true.shape):
         case [n], [m] if n == m:

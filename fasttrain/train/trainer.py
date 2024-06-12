@@ -338,3 +338,4 @@ class Trainer(ABC):
 
         history = self._training_loop(train_dl, val_dl, num_epochs)
         return history
+    
