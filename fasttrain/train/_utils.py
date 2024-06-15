@@ -27,12 +27,10 @@ def get_cpu_name() -> str | None:
     return None
 
 
-def get_gpu_name() -> str:
+def get_gpu_name() -> str | None:
+    if not torch.cuda.is_available():
+        return None
     return torch.cuda.get_device_name()
-
-
-def default_device() -> torch.device:
-    return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def can_be_used(device: str | torch.device) -> bool:
@@ -43,16 +41,6 @@ def can_be_used(device: str | torch.device) -> bool:
         # RuntimeError should be raised when the given device name is incorrect.
         return False
     return True
-
-
-def appropriate_device(preferable_device: str | torch.device = 'auto') -> torch.device:
-    '''
-    Returns the most suitable device for model training.
-    '''
-    if preferable_device == 'auto' or not can_be_used(preferable_device):
-        return default_device()
-
-    return torch.device(preferable_device)
 
 
 def load_data_on_device(dl: DataLoader, device: str | torch.device) -> Iterable[Any]:
@@ -85,3 +73,4 @@ def load_data_on_device(dl: DataLoader, device: str | torch.device) -> Iterable[
             yield batch.to(device)
         else:
             raise TypeError(f'Type "{type(batch)}" is not supported')
+        
