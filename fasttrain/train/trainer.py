@@ -25,7 +25,7 @@ class BaseTrainer(ABC):
     Base class for `Trainer`. Can be subclassed for creating a custom Trainer object,
     although subclassing `Trainer` is more preferrable (`BaseTrainer` doesn't support automatic device choosing,
     while `Trainer` does, same for `logger` parameter - `Trainer` creates a default one when no `logger` was provided).
-    To create a custom trainer, subclass `fasttrain.BaseTrainer` and define/override `predict`, `compute_loss`, and `eval_metrics`.
+    To create a custom trainer, subclass `BaseTrainer` and define/override `predict`, `compute_loss`, and `eval_metrics`.
     '''
 
     def __init__(self,

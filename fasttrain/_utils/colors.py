@@ -1,10 +1,13 @@
+from enum import Enum
+
+
 _COLORS = {
     'green': '\033[1;32m{text}\033[0m',
     'orange': '\033[38;5;208m{text}\033[0m',
     'purple': '\033[38;5;092m{text}\033[0m',
     }
 
-class bcolors:
+class CodeColor(Enum):
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -22,20 +25,20 @@ def paint(text: str, color: str) -> str:
 
 
 def warning(text):
-    return f'{bcolors.WARNING}{text}{bcolors.ENDC}'
+    return f'{CodeColor.WARNING}{text}{CodeColor.ENDC}'
 
 
 def success(text):
-    return f'{bcolors.OKGREEN}{text}{bcolors.ENDC}'
+    return f'{CodeColor.OKGREEN}{text}{CodeColor.ENDC}'
 
 
 def fail(text):
-    return f'{bcolors.FAIL}{text}{bcolors.ENDC}'
+    return f'{CodeColor.FAIL}{text}{CodeColor.ENDC}'
 
 
 def blue(text):
-    return f'{bcolors.OKBLUE}{text}{bcolors.ENDC}'
+    return f'{CodeColor.OKBLUE}{text}{CodeColor.ENDC}'
 
 
 def underline(text):
-    return f'{bcolors.UNDERLINE}{text}{bcolors.ENDC}'
+    return f'{CodeColor.UNDERLINE}{text}{CodeColor.ENDC}'
